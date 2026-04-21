@@ -171,13 +171,17 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
             onPressed: () async {
               if (_isMaximized) {
                 await windowManager.unmaximize();
-                // Linux 下强制更新状态（兜底 WM 回调失效）
+                // Linux 下强制更新状态
                 if (Platform.isLinux) {
                   setState(() => _isMaximized = false);
+                  // 延迟刷新窗口，消除重影
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    if (mounted) windowManager.focus();
+                  });
                 }
               } else {
                 await windowManager.maximize();
-                // Linux 下强制更新状态（兜底 WM 回调失效）
+                // Linux 下强制更新状态
                 if (Platform.isLinux) {
                   setState(() => _isMaximized = true);
                 }
