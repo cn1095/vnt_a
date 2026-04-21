@@ -78,9 +78,6 @@ fi
 
 exec "$HERE/vnt_app" "$@"
 EOF
-
-exec "$HERE/vnt_app" "$@"
-EOF
 chmod +x AppDir/AppRun
 
 step "打包 AppImage（arch=${APPIMAGE_ARCH}）"
