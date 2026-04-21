@@ -401,7 +401,6 @@ class _MainAppState extends State<MainApp> with WindowListener {
 
   @override
   void onWindowClose() async {
-    debugPrint('onWindowClose 被调用');
     
     // macOS 显示特殊的确认对话框（说明由于安全限制无法最小化）
     if (Platform.isMacOS) {
@@ -419,15 +418,10 @@ class _MainAppState extends State<MainApp> with WindowListener {
 
     // Windows 和 Linux 保持原有的确认逻辑
     var isClose = await DataPersistence().loadCloseApp();
-    debugPrint('loadCloseApp 返回: $isClose');
     
     if (isClose == null) {
-      debugPrint('显示关闭确认对话框');
       final shouldClose = await _showCloseConfirmationDialog();
-      debugPrint('用户选择: $shouldClose');
       isClose = shouldClose;
-    } else {
-      debugPrint('使用保存的选择: $isClose');
     }
     
     if (isClose != null) {
@@ -448,8 +442,7 @@ class _MainAppState extends State<MainApp> with WindowListener {
         debugPrint('隐藏到托盘');
         appWindow.hide();
       }
-    } else {
-      debugPrint('用户取消操作');
+    }
     }
   }
 
@@ -612,9 +605,7 @@ Future<void> initSystemTray() async {
       // 设置权限为 644 (所有用户可读)
       await Process.run('chmod', ['644', iconFile.path]);
       path = iconFile.path;
-      debugPrint('[SystemTray] 图标已复制到: $path');
     } catch (e) {
-      debugPrint('[SystemTray] 复制图标失败: $e');
       path = 'assets/app_icon.png'; // 降级
     }
   } else {
@@ -627,8 +618,6 @@ Future<void> initSystemTray() async {
     toolTip: "VNT - Virtual Network Tool",
     iconPath: path,
   );
-  
-  debugPrint('[SystemTray] 初始化完成，iconPath: $path');
 
   // 初始化 SystemTrayManager，传入全局的 systemTray 实例
   final trayManager = SystemTrayManager();

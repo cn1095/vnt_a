@@ -51,7 +51,6 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
   void onWindowMaximize() {
     // Linux 下不使用回调，避免和强制状态冲突导致闪烁
     if (Platform.isLinux) return;
-    debugPrint('[CustomTitleBar] onWindowMaximize 触发');
     setState(() => _isMaximized = true);
   }
 
@@ -59,14 +58,12 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
   void onWindowUnmaximize() {
     // Linux 下不使用回调，避免和强制状态冲突导致闪烁
     if (Platform.isLinux) return;
-    debugPrint('[CustomTitleBar] onWindowUnmaximize 触发');
     setState(() => _isMaximized = false);
   }
 
   Future<void> _checkWindowState() async {
     final isMaximized = await windowManager.isMaximized();
     final isAlwaysOnTop = await windowManager.isAlwaysOnTop();
-    debugPrint('[CustomTitleBar] _checkWindowState: isMaximized=$isMaximized');
     if (mounted) {
       setState(() {
         _isMaximized = isMaximized;
