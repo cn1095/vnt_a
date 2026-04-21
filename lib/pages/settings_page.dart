@@ -53,6 +53,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadData() async {
     _autoStart = await _dataPersistence.loadAutoStart() ?? false;
+    // Linux 以实际文件存在为准
+    if (Platform.isLinux) {
+      final home = Platform.environment['HOME'] ?? '';
+      _autoStart = await File('$home/.config/autostart/vnt_app.desktop').exists();
+    }
     _autoConnect = await _dataPersistence.loadAutoConnect() ?? false;
     _defaultKey = await _dataPersistence.loadDefaultKey() ?? '';
 
@@ -148,6 +153,26 @@ class _SettingsPageState extends State<SettingsPage> {
       await Process.run('taskschd.msc', [], runInShell: true);
     } catch (e) {
       debugPrint('Failed to open Task Scheduler: $e');
+    }
+  }
+
+  Future<void> _setLinuxAutoStart(bool enable) async {
+    final home = Platform.environment['HOME'] ?? '';
+    final autostartDir = '$home/.config/autostart';
+    final desktopFile = '$autostartDir/vnt_app.desktop';
+    try {
+      if (enable) {
+        await Directory(autostartDir).create(recursive: true);
+        final execPath = Platform.resolvedExecutable;
+        await File(desktopFile).writeAsString(
+          '[Desktop Entry]\nType=Application\nName=VNT App\nExec=$execPath\nX-GNOME-Autostart-enabled=true\n',
+        );
+      } else {
+        final file = File(desktopFile);
+        if (await file.exists()) await file.delete();
+      }
+    } catch (e) {
+      debugPrint('Linux autostart error: $e');
     }
   }
 
@@ -586,14 +611,16 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         children: [
           // 开机自启（Windows 和 Android）
-          if (Platform.isWindows || Platform.isAndroid) ...[
+          if (Platform.isWindows || Platform.isAndroid || Platform.isLinux) ...[
             _buildSettingItem(
               isDark,
               icon: Icons.play_circle_outline,
               title: '开机自启',
               subtitle: Platform.isWindows
                   ? '系统启动时自动运行应用'
-                  : '下次开机时自动启动应用',
+                  : Platform.isLinux
+                      ? '写入 ~/.config/autostart 实现开机自启'
+                      : '下次开机时自动启动应用',
               trailing: Platform.isWindows
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
@@ -623,6 +650,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   : Switch(
                       value: _autoStart,
                       onChanged: (value) async {
+                        if (Platform.isLinux) {
+                          await _setLinuxAutoStart(value);
+                        }
                         await _dataPersistence.saveAutoStart(value);
                         setState(() {
                           _autoStart = value;

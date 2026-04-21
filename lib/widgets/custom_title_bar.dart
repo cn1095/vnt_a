@@ -30,15 +30,28 @@ class CustomTitleBar extends StatefulWidget {
   State<CustomTitleBar> createState() => _CustomTitleBarState();
 }
 
-class _CustomTitleBarState extends State<CustomTitleBar> {
+class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
   bool _isMaximized = false;
   bool _isAlwaysOnTop = false;
 
   @override
   void initState() {
     super.initState();
+    windowManager.addListener(this);
     _checkWindowState();
   }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onWindowMaximize() => setState(() => _isMaximized = true);
+
+  @override
+  void onWindowUnmaximize() => setState(() => _isMaximized = false);
 
   Future<void> _checkWindowState() async {
     final isMaximized = await windowManager.isMaximized();

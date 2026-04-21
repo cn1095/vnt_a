@@ -167,6 +167,10 @@ class SystemTrayManager {
     }
 
     await systemTray.setToolTip(tooltip);
+    // Linux 上 setToolTip 会重置图标，需要重新设置
+    if (Platform.isLinux) {
+      await systemTray.setImage('assets/app_icon.png');
+    }
   }
 
   /// 连接到指定配置

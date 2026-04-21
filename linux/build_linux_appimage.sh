@@ -4,6 +4,9 @@ set -e
 BUNDLE=$1
 APPIMAGE_ARCH=$2
 
+step() { echo -e "\n\033[1;36m>>> $1\033[0m\n"; }
+
+step "安装系统依赖"
 apt-get update -q
 apt-get install -y --no-install-recommends \
   curl git cmake ninja-build pkg-config clang \
@@ -12,14 +15,14 @@ apt-get install -y --no-install-recommends \
   libsecret-1-dev libjsoncpp-dev \
   ca-certificates wget file xz-utils unzip
 
-# 容器内独立安装 Flutter 3.24.5
+step "安装 Flutter 3.24.5"
 git clone --depth 1 --branch 3.24.5 \
   https://github.com/flutter/flutter.git /opt/flutter
 export PATH="/opt/flutter/bin:$PATH"
 flutter precache --linux
 flutter --version
 
-# 安装并强制固定 Rust 1.77.2，禁止自动升级
+step "安装 Rust 1.77.2（强制固定，禁止升级）"
 export CARGO_HOME=/opt/cargo
 export RUSTUP_HOME=/opt/rustup
 export PATH="/opt/cargo/bin:$PATH"
@@ -30,18 +33,19 @@ rustup set auto-self-update disable
 rustup default 1.77.2
 rustc -V
 
+step "构建 Flutter Linux Release"
 flutter config --no-analytics
 flutter pub get
-flutter build linux --release
+flutter build linux --release -v
 
-# 下载 appimagetool（用 extract 方式兼容 arm64 容器）
+step "下载并解压 appimagetool"
 wget -q -O appimagetool.AppImage \
   https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
 chmod +x appimagetool.AppImage
 ./appimagetool.AppImage --appimage-extract
 mv squashfs-root appimagetool-extracted
 
-# 构建 AppDir
+step "构建 AppDir"
 mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 cp -r ${BUNDLE}/. AppDir/
 cp assets/app_icon.png AppDir/vnt_app.png
@@ -64,5 +68,8 @@ exec "\$HERE/vnt_app" "\$@"
 EOF
 chmod +x AppDir/AppRun
 
+step "打包 AppImage（arch=${APPIMAGE_ARCH}）"
 ARCH=${APPIMAGE_ARCH} ./appimagetool-extracted/AppRun AppDir \
   vntApp-linux-${APPIMAGE_ARCH}.AppImage
+
+step "完成 ✓ vntApp-linux-${APPIMAGE_ARCH}.AppImage"
