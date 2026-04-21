@@ -597,26 +597,18 @@ Future<void> initSystemTray() async {
   String path;
   
   if (Platform.isLinux) {
-    // Linux 需要绝对路径，尝试从 AppImage 内部路径获取
-    final exePath = Platform.resolvedExecutable;
-    final appImageMountPoint = exePath.substring(0, exePath.lastIndexOf('/'));
-    final iconPath = '$appImageMountPoint/data/flutter_assets/assets/app_icon.png';
-    
-    debugPrint('[SystemTray] AppImage 挂载点: $appImageMountPoint');
-    debugPrint('[SystemTray] 图标路径: $iconPath');
-    
-    // 检查文件是否存在
-    if (await File(iconPath).exists()) {
-      path = iconPath;
-      debugPrint('[SystemTray] 使用 AppImage 内部图标');
-    } else {
-      // 降级：复制到临时目录
-      debugPrint('[SystemTray] AppImage 内部图标不存在，复制到临时目录');
-      final tempDir = await getTemporaryDirectory();
-      final iconFile = File('${tempDir.path}/vnt_app_icon.png');
+    // Linux 复制到 /tmp 并设置普通用户可读权限
+    try {
+      final iconFile = File('/tmp/vnt_app_icon.png');
       final byteData = await rootBundle.load('assets/app_icon.png');
       await iconFile.writeAsBytes(byteData.buffer.asUint8List());
+      // 设置权限为 644 (所有用户可读)
+      await Process.run('chmod', ['644', iconFile.path]);
       path = iconFile.path;
+      debugPrint('[SystemTray] 图标已复制到: $path');
+    } catch (e) {
+      debugPrint('[SystemTray] 复制图标失败: $e');
+      path = 'assets/app_icon.png'; // 降级
     }
   } else {
     path = Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
