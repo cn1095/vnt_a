@@ -154,6 +154,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 Text('正在连接 ${config.configName} ...'),
               ],
             ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  vntManager.remove(config.itemKey);
+                  Navigator.of(context).pop();
+                },
+                child: const Text('取消'),
+              ),
+            ],
           );
         },
       );
