@@ -163,7 +163,10 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
               } else {
                 await windowManager.maximize();
               }
-              _checkWindowState();
+              // 立即检查一次
+              await _checkWindowState();
+              // 如果状态没变，延迟后再检查（兜底）
+              Future.delayed(const Duration(milliseconds: 100), _checkWindowState);
             },
             isDark: isDark,
           ),
