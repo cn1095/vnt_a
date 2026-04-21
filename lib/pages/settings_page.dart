@@ -181,7 +181,7 @@ class _SettingsPageState extends State<SettingsPage> {
         final execPath = Platform.environment['APPIMAGE'] ?? Platform.resolvedExecutable;
         
         await File(desktopFile).writeAsString(
-          '[Desktop Entry]\nType=Application\nName=VNT App\nExec=$execPath\nX-GNOME-Autostart-enabled=true\n',
+          '[Desktop Entry]\nType=Application\nName=VNT App\nExec=pkexec $execPath\nX-GNOME-Autostart-enabled=true\n',
         );
         debugPrint('开机自启文件已创建: $desktopFile');
       } else {

@@ -64,6 +64,12 @@ cat > AppDir/AppRun << EOF
 #!/bin/bash
 HERE="\$(dirname "\$(readlink -f "\$0")")"
 export LD_LIBRARY_PATH="\$HERE/lib:\$LD_LIBRARY_PATH"
+
+# 检查是否以 root 运行，如果不是则用 pkexec 提权重新启动
+if [ "\$(id -u)" -ne 0 ]; then
+  exec pkexec "\$0" "\$@"
+fi
+
 exec "\$HERE/vnt_app" "\$@"
 EOF
 chmod +x AppDir/AppRun
