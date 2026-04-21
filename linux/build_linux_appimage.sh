@@ -70,15 +70,14 @@ export LD_LIBRARY_PATH="$HERE/lib:$LD_LIBRARY_PATH"
 
 # 检查是否以 root 运行，如果不是则用 pkexec 提权
 if [ "$(id -u)" -ne 0 ]; then
-  # 获取 AppImage 的真实路径
-  if [ -n "$APPIMAGE" ]; then
-    # 双击运行时，APPIMAGE 环境变量存在
-    exec pkexec "$APPIMAGE" "$@"
-  else
-    # 开发环境或其他情况
-    exec pkexec "$HERE/vnt_app" "$@"
-  fi
+  # 获取 AppImage 的真实路径（从 /proc/self/exe）
+  SELF="$(readlink -f /proc/self/exe)"
+  # 用 sh -c 包裹，传递所有必要的环境变量
+  exec pkexec sh -c "DISPLAY='$DISPLAY' XAUTHORITY='$XAUTHORITY' DBUS_SESSION_BUS_ADDRESS='$DBUS_SESSION_BUS_ADDRESS' XDG_RUNTIME_DIR='$XDG_RUNTIME_DIR' WAYLAND_DISPLAY='$WAYLAND_DISPLAY' GDK_BACKEND=x11 QT_X11_NO_MITSHM=1 '$SELF' $*"
 fi
+
+exec "$HERE/vnt_app" "$@"
+EOF
 
 exec "$HERE/vnt_app" "$@"
 EOF
