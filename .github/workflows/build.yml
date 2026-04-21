@@ -45,6 +45,22 @@ jobs:
             OS: macos-14
             flutter-version: 3.24.5
 
+          - NAME: vntApp-linux-x64
+            OS: ubuntu-latest
+            flutter-version: 3.24.5
+            DOCKER_PLATFORM: linux/amd64
+            DOCKER_IMAGE: ubuntu:18.04
+            APPIMAGE_ARCH: x86_64
+            BUNDLE_DIR: build/linux/x64/release/bundle
+
+          - NAME: vntApp-linux-arm64
+            OS: ubuntu-latest
+            flutter-version: 3.24.5
+            DOCKER_PLATFORM: linux/arm64
+            DOCKER_IMAGE: arm64v8/ubuntu:18.04
+            APPIMAGE_ARCH: aarch64
+            BUNDLE_DIR: build/linux/arm64/release/bundle
+
     runs-on: ${{ matrix.OS }}
     steps:
       - uses: actions/checkout@v5
@@ -78,6 +94,7 @@ jobs:
           flutter-version: ${{ matrix.flutter-version }}
 
       - name: 固定 Rust 版本 1.77.2
+        if: "!startsWith(matrix.NAME, 'vntApp-linux')"
         shell: bash
         run: |
           echo "========================================="
@@ -408,6 +425,74 @@ jobs:
           
           echo "完成：IPA 已生成"
 
+      - name: 设置 QEMU（Linux arm64 跨架构）
+        if: startsWith(matrix.NAME, 'vntApp-linux')
+        uses: docker/setup-qemu-action@v3
+
+      - name: 构建 Linux AppImage（Docker Ubuntu 18.04）
+        if: startsWith(matrix.NAME, 'vntApp-linux')
+        run: |
+          FLUTTER_SDK=$(dirname $(dirname $(which flutter)))
+
+          docker run --rm --platform ${{ matrix.DOCKER_PLATFORM }} \
+            -v "${{ github.workspace }}:/workspace" \
+            -v "${FLUTTER_SDK}:/flutter" \
+            -v "${HOME}/.pub-cache:/root/.pub-cache" \
+            -v "${HOME}/.cargo:/root/.cargo" \
+            -e PUB_CACHE=/root/.pub-cache \
+            -e CARGO_HOME=/root/.cargo \
+            -w /workspace \
+            ${{ matrix.DOCKER_IMAGE }} bash -c '
+              set -e
+
+              apt-get update -q
+              apt-get install -y --no-install-recommends \
+                curl git cmake ninja-build pkg-config clang \
+                libgtk-3-dev libblkid-dev liblzma-dev \
+                libappindicator3-dev libkeybinder-3.0-dev \
+                libsecret-1-dev libjsoncpp-dev \
+                ca-certificates wget file xz-utils unzip
+
+              # 安装并强制固定 Rust 1.77.2，禁止自动升级
+              export PATH="/root/.cargo/bin:$PATH"
+              curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | \
+                sh -s -- -y --default-toolchain 1.77.2 --no-modify-path
+              rustup set auto-self-update disable
+              rustup toolchain install 1.77.2 --no-self-update
+              rustup default 1.77.2
+              rustc -V
+
+              export PATH="/flutter/bin:$PATH"
+              flutter --version
+              flutter config --no-analytics
+              flutter pub get
+              flutter build linux --release
+
+              # 下载 appimagetool（只有 x86_64 版，用 extract 方式在 arm64 容器内运行）
+              wget -q -O appimagetool.AppImage \
+                https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+              chmod +x appimagetool.AppImage
+              ./appimagetool.AppImage --appimage-extract
+              mv squashfs-root appimagetool-extracted
+
+              # 构建 AppDir
+              BUNDLE=${{ matrix.BUNDLE_DIR }}
+              mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+              cp -r ${BUNDLE}/. AppDir/
+              cp assets/app_icon.png AppDir/vnt_app.png
+              cp assets/app_icon.png AppDir/usr/share/icons/hicolor/256x256/apps/vnt_app.png
+
+              printf '[Desktop Entry]\nName=VNT App\nExec=vnt_app\nIcon=vnt_app\nType=Application\nCategories=Network;\n' \
+                > AppDir/vnt_app.desktop
+
+              printf '#!/bin/bash\nHERE="$(dirname "$(readlink -f "$0")")"\nexport LD_LIBRARY_PATH="$HERE/lib:$LD_LIBRARY_PATH"\nexec "$HERE/vnt_app" "$@"\n' \
+                > AppDir/AppRun
+              chmod +x AppDir/AppRun
+
+              ARCH=${{ matrix.APPIMAGE_ARCH }} ./appimagetool-extracted/AppRun AppDir \
+                vntApp-linux-${{ matrix.APPIMAGE_ARCH }}.AppImage
+            '
+
       - name: Archive artifact
         uses: actions/upload-artifact@v4
         with:
@@ -417,6 +502,8 @@ jobs:
             ${{ matrix.NAME == 'vntApp-windows' && 'vntApp-windows.zip' || '' }}
             ${{ matrix.NAME == 'vntApp-macOS' && 'vnt_APP.dmg' || '' }}
             ${{ matrix.NAME == 'vntApp-IOS' && 'build/ios/iphoneos/vntAPP.ipa' || '' }}
+            ${{ matrix.NAME == 'vntApp-linux-x64' && 'vntApp-linux-x86_64.AppImage' || '' }}
+            ${{ matrix.NAME == 'vntApp-linux-arm64' && 'vntApp-linux-aarch64.AppImage' || '' }}
 
   deploy:
     needs: build
