@@ -45,7 +45,7 @@ jobs:
             OS: macos-14
             flutter-version: 3.24.5
 
-          - NAME: vntApp-linux-x64
+          - NAME: vntApp-linux-x86_64
             OS: ubuntu-latest
             flutter-version: 3.24.5
             DOCKER_PLATFORM: linux/amd64
@@ -452,7 +452,7 @@ jobs:
             ${{ matrix.NAME == 'vntApp-windows' && 'vntApp-windows.zip' || '' }}
             ${{ matrix.NAME == 'vntApp-macOS' && 'vnt_APP.dmg' || '' }}
             ${{ matrix.NAME == 'vntApp-IOS' && 'build/ios/iphoneos/vntAPP.ipa' || '' }}
-            ${{ matrix.NAME == 'vntApp-linux-x64' && 'vntApp-linux-x86_64.AppImage' || '' }}
+            ${{ matrix.NAME == 'vntApp-linux-x86_64' && 'vntApp-linux-x86_64.AppImage' || '' }}
             ${{ matrix.NAME == 'vntApp-linux-arm64' && 'vntApp-linux-aarch64.AppImage' || '' }}
 
   deploy:

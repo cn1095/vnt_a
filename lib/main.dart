@@ -593,7 +593,21 @@ class _MainAppState extends State<MainApp> with WindowListener {
 }
 
 Future<void> initSystemTray() async {
-  String path = Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
+  String path;
+  
+  if (Platform.isLinux) {
+    // Linux 需要绝对路径，从 assets 复制到临时目录
+    final tempDir = await getTemporaryDirectory();
+    final iconFile = File('${tempDir.path}/vnt_app_icon.png');
+    
+    // 从 assets 读取并写入临时文件
+    final byteData = await rootBundle.load('assets/app_icon.png');
+    await iconFile.writeAsBytes(byteData.buffer.asUint8List());
+    
+    path = iconFile.path;
+  } else {
+    path = Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
+  }
 
   // 初始化系统托盘
   await systemTray.initSystemTray(

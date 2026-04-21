@@ -7,6 +7,8 @@ import 'package:vnt_app/network_config.dart';
 import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:path_provider/path_provider.dart';
 
 /// 系统托盘管理器 - 提供全局访问的托盘更新功能
 class SystemTrayManager {
@@ -169,7 +171,13 @@ class SystemTrayManager {
     await systemTray.setToolTip(tooltip);
     // Linux 上 setToolTip 会重置图标，需要重新设置
     if (Platform.isLinux) {
-      await systemTray.setImage('assets/app_icon.png');
+      try {
+        final tempDir = await getTemporaryDirectory();
+        final iconPath = '${tempDir.path}/vnt_app_icon.png';
+        await systemTray.setImage(iconPath);
+      } catch (e) {
+        debugPrint('设置托盘图标失败: $e');
+      }
     }
   }
 

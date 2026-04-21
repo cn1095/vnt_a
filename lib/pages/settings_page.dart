@@ -55,8 +55,12 @@ class _SettingsPageState extends State<SettingsPage> {
     _autoStart = await _dataPersistence.loadAutoStart() ?? false;
     // Linux 以实际文件存在为准
     if (Platform.isLinux) {
-      final home = Platform.environment['HOME'] ?? '';
-      _autoStart = await File('$home/.config/autostart/vnt_app.desktop').exists();
+      final home = Platform.environment['SUDO_USER'] != null
+          ? '/home/${Platform.environment['SUDO_USER']}'
+          : Platform.environment['HOME'] ?? '';
+      if (home.isNotEmpty) {
+        _autoStart = await File('$home/.config/autostart/vnt_app.desktop').exists();
+      }
     }
     _autoConnect = await _dataPersistence.loadAutoConnect() ?? false;
     _defaultKey = await _dataPersistence.loadDefaultKey() ?? '';
@@ -157,19 +161,35 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _setLinuxAutoStart(bool enable) async {
-    final home = Platform.environment['HOME'] ?? '';
+    // 获取真实用户的 HOME（即使 sudo 运行也能拿到）
+    final home = Platform.environment['SUDO_USER'] != null
+        ? '/home/${Platform.environment['SUDO_USER']}'
+        : Platform.environment['HOME'] ?? '';
+    if (home.isEmpty) {
+      debugPrint('无法获取用户 HOME 目录');
+      return;
+    }
+    
     final autostartDir = '$home/.config/autostart';
     final desktopFile = '$autostartDir/vnt_app.desktop';
+    
     try {
       if (enable) {
         await Directory(autostartDir).create(recursive: true);
-        final execPath = Platform.resolvedExecutable;
+        
+        // AppImage 需要用 APPIMAGE 环境变量，否则用 resolvedExecutable
+        final execPath = Platform.environment['APPIMAGE'] ?? Platform.resolvedExecutable;
+        
         await File(desktopFile).writeAsString(
           '[Desktop Entry]\nType=Application\nName=VNT App\nExec=$execPath\nX-GNOME-Autostart-enabled=true\n',
         );
+        debugPrint('开机自启文件已创建: $desktopFile');
       } else {
         final file = File(desktopFile);
-        if (await file.exists()) await file.delete();
+        if (await file.exists()) {
+          await file.delete();
+          debugPrint('开机自启文件已删除: $desktopFile');
+        }
       }
     } catch (e) {
       debugPrint('Linux autostart error: $e');
