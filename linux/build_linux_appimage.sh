@@ -72,13 +72,8 @@ export LD_LIBRARY_PATH="$HERE/lib:$LD_LIBRARY_PATH"
 if [ "$(id -u)" -ne 0 ]; then
   # 获取 AppImage 的真实路径（从 /proc/self/exe）
   SELF="$(readlink -f /proc/self/exe)"
-  # 传递必要的环境变量给 pkexec，让托盘图标能显示
-  exec pkexec env \
-    DISPLAY="$DISPLAY" \
-    XAUTHORITY="$XAUTHORITY" \
-    DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
-    XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
-    "$SELF" "$@"
+  # 用 sh -c 包裹，传递环境变量并强制 X11并强制软件渲染LIBGL_ALWAYS_SOFTWARE=1 （某些虚拟机或老显卡需要，但会降低性能）
+  exec pkexec sh -c "DISPLAY='$DISPLAY' XAUTHORITY='$XAUTHORITY' DBUS_SESSION_BUS_ADDRESS='$DBUS_SESSION_BUS_ADDRESS' XDG_RUNTIME_DIR='$XDG_RUNTIME_DIR' GDK_BACKEND=x11 LIBGL_ALWAYS_SOFTWARE=1 '$SELF' $*"
 fi
 
 exec "$HERE/vnt_app" "$@"
