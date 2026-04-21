@@ -53,13 +53,18 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadData() async {
     _autoStart = await _dataPersistence.loadAutoStart() ?? false;
-    // Linux 以实际文件存在为准
+    // Linux 以实际文件存在为准（每次都检查，防止用户手动删除）
     if (Platform.isLinux) {
       final home = Platform.environment['SUDO_USER'] != null
           ? '/home/${Platform.environment['SUDO_USER']}'
           : Platform.environment['HOME'] ?? '';
       if (home.isNotEmpty) {
-        _autoStart = await File('$home/.config/autostart/vnt_app.desktop').exists();
+        final fileExists = await File('$home/.config/autostart/vnt_app.desktop').exists();
+        _autoStart = fileExists;
+        // 同步到持久化存储
+        if (_autoStart != (await _dataPersistence.loadAutoStart() ?? false)) {
+          await _dataPersistence.saveAutoStart(_autoStart);
+        }
       }
     }
     _autoConnect = await _dataPersistence.loadAutoConnect() ?? false;

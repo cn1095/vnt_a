@@ -48,14 +48,21 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
   }
 
   @override
-  void onWindowMaximize() => setState(() => _isMaximized = true);
+  void onWindowMaximize() {
+    debugPrint('[CustomTitleBar] onWindowMaximize 触发');
+    setState(() => _isMaximized = true);
+  }
 
   @override
-  void onWindowUnmaximize() => setState(() => _isMaximized = false);
+  void onWindowUnmaximize() {
+    debugPrint('[CustomTitleBar] onWindowUnmaximize 触发');
+    setState(() => _isMaximized = false);
+  }
 
   Future<void> _checkWindowState() async {
     final isMaximized = await windowManager.isMaximized();
     final isAlwaysOnTop = await windowManager.isAlwaysOnTop();
+    debugPrint('[CustomTitleBar] _checkWindowState: isMaximized=$isMaximized');
     if (mounted) {
       setState(() {
         _isMaximized = isMaximized;
@@ -160,13 +167,21 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
             onPressed: () async {
               if (_isMaximized) {
                 await windowManager.unmaximize();
+                // Linux 下强制更新状态（兜底 WM 回调失效）
+                if (Platform.isLinux) {
+                  setState(() => _isMaximized = false);
+                }
               } else {
                 await windowManager.maximize();
+                // Linux 下强制更新状态（兜底 WM 回调失效）
+                if (Platform.isLinux) {
+                  setState(() => _isMaximized = true);
+                }
               }
-              // 立即检查一次
-              await _checkWindowState();
-              // 如果状态没变，延迟后再检查（兜底）
-              Future.delayed(const Duration(milliseconds: 100), _checkWindowState);
+              // 其他平台检查状态
+              if (!Platform.isLinux) {
+                _checkWindowState();
+              }
             },
             isDark: isDark,
           ),

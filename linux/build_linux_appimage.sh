@@ -8,12 +8,15 @@ step() { echo -e "\n\033[1;36m>>> $1\033[0m\n"; }
 
 step "安装系统依赖"
 apt-get update -q
-apt-get install -y --no-install-recommends \
+apt-get install -y --no-install-recommends --no-install-suggests \
   curl git cmake ninja-build pkg-config clang \
   libgtk-3-dev libblkid-dev liblzma-dev \
   libappindicator3-dev libkeybinder-3.0-dev \
   libsecret-1-dev libjsoncpp-dev \
-  ca-certificates wget file xz-utils unzip
+  ca-certificates wget file xz-utils unzip || {
+    echo "部分包安装失败，尝试修复..."
+    apt-get install -f -y
+  }
 
 step "安装 Flutter 3.24.5"
 git clone --depth 1 --branch 3.24.5 \
@@ -60,17 +63,22 @@ Type=Application
 Categories=Network;
 EOF
 
-cat > AppDir/AppRun << EOF
+cat > AppDir/AppRun << 'EOF'
 #!/bin/bash
-HERE="\$(dirname "\$(readlink -f "\$0")")"
-export LD_LIBRARY_PATH="\$HERE/lib:\$LD_LIBRARY_PATH"
+HERE="$(dirname "$(readlink -f "$0")")"
+export LD_LIBRARY_PATH="$HERE/lib:$LD_LIBRARY_PATH"
 
-# 检查是否以 root 运行，如果不是则用 pkexec 提权重新启动
-if [ "\$(id -u)" -ne 0 ]; then
-  exec pkexec "\$0" "\$@"
+# 检查是否以 root 运行，如果不是则用 pkexec 提权
+if [ "$(id -u)" -ne 0 ]; then
+  # 如果是 AppImage，用 APPIMAGE 环境变量；否则用当前脚本路径
+  if [ -n "$APPIMAGE" ]; then
+    exec pkexec env APPIMAGE="$APPIMAGE" "$APPIMAGE" "$@"
+  else
+    exec pkexec "$HERE/vnt_app" "$@"
+  fi
 fi
 
-exec "\$HERE/vnt_app" "\$@"
+exec "$HERE/vnt_app" "$@"
 EOF
 chmod +x AppDir/AppRun
 

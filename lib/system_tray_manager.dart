@@ -172,9 +172,17 @@ class SystemTrayManager {
     // Linux 上 setToolTip 会重置图标，需要重新设置
     if (Platform.isLinux) {
       try {
-        final tempDir = await getTemporaryDirectory();
-        final iconPath = '${tempDir.path}/vnt_app_icon.png';
-        await systemTray.setImage(iconPath);
+        final exePath = Platform.resolvedExecutable;
+        final appImageMountPoint = exePath.substring(0, exePath.lastIndexOf('/'));
+        final iconPath = '$appImageMountPoint/data/flutter_assets/assets/app_icon.png';
+        
+        if (await File(iconPath).exists()) {
+          await systemTray.setImage(iconPath);
+        } else {
+          // 降级：使用临时目录的副本
+          final tempDir = await getTemporaryDirectory();
+          await systemTray.setImage('${tempDir.path}/vnt_app_icon.png');
+        }
       } catch (e) {
         debugPrint('设置托盘图标失败: $e');
       }

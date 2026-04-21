@@ -90,7 +90,8 @@ Future<void> main() async {
     }
 
     // 调用Rust层初始化日志
-    initLogWithPath(logDir: logDir);
+    final configPath = await DataPersistence().getConfigFilePath();
+    initLogWithPath(logDir: logDir, configPath: configPath);
     debugPrint('日志系统初始化成功，日志目录: $logDir');
   } catch (e) {
     debugPrint('初始化日志系统失败: $e');
@@ -596,15 +597,27 @@ Future<void> initSystemTray() async {
   String path;
   
   if (Platform.isLinux) {
-    // Linux 需要绝对路径，从 assets 复制到临时目录
-    final tempDir = await getTemporaryDirectory();
-    final iconFile = File('${tempDir.path}/vnt_app_icon.png');
+    // Linux 需要绝对路径，尝试从 AppImage 内部路径获取
+    final exePath = Platform.resolvedExecutable;
+    final appImageMountPoint = exePath.substring(0, exePath.lastIndexOf('/'));
+    final iconPath = '$appImageMountPoint/data/flutter_assets/assets/app_icon.png';
     
-    // 从 assets 读取并写入临时文件
-    final byteData = await rootBundle.load('assets/app_icon.png');
-    await iconFile.writeAsBytes(byteData.buffer.asUint8List());
+    debugPrint('[SystemTray] AppImage 挂载点: $appImageMountPoint');
+    debugPrint('[SystemTray] 图标路径: $iconPath');
     
-    path = iconFile.path;
+    // 检查文件是否存在
+    if (await File(iconPath).exists()) {
+      path = iconPath;
+      debugPrint('[SystemTray] 使用 AppImage 内部图标');
+    } else {
+      // 降级：复制到临时目录
+      debugPrint('[SystemTray] AppImage 内部图标不存在，复制到临时目录');
+      final tempDir = await getTemporaryDirectory();
+      final iconFile = File('${tempDir.path}/vnt_app_icon.png');
+      final byteData = await rootBundle.load('assets/app_icon.png');
+      await iconFile.writeAsBytes(byteData.buffer.asUint8List());
+      path = iconFile.path;
+    }
   } else {
     path = Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
   }
@@ -615,6 +628,8 @@ Future<void> initSystemTray() async {
     toolTip: "VNT - Virtual Network Tool",
     iconPath: path,
   );
+  
+  debugPrint('[SystemTray] 初始化完成，iconPath: $path');
 
   // 初始化 SystemTrayManager，传入全局的 systemTray 实例
   final trayManager = SystemTrayManager();
