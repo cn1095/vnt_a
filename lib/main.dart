@@ -443,7 +443,6 @@ class _MainAppState extends State<MainApp> with WindowListener {
         appWindow.hide();
       }
     }
-    }
   }
 
   /// macOS 专用的关闭确认对话框
