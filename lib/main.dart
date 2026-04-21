@@ -410,7 +410,8 @@ class _MainAppState extends State<MainApp> with WindowListener {
         // 退出应用：先断开连接再关闭
         await vntManager.removeAll();
         windowManager.setPreventClose(false);
-        appWindow.close();
+        await windowManager.destroy();
+        exit(0);
       }
       // 如果用户点击取消，什么都不做（窗口保持打开）
       return;
@@ -435,7 +436,13 @@ class _MainAppState extends State<MainApp> with WindowListener {
         debugPrint('退出应用');
         await vntManager.removeAll();
         windowManager.setPreventClose(false);
-        appWindow.close();
+        if (Platform.isLinux) {
+          // Linux 强制退出进程，避免残留
+          await windowManager.destroy();
+          exit(0);
+        } else {
+          appWindow.close();
+        }
       } else {
         // 隐藏窗口：不断开连接
         debugPrint('隐藏到托盘');
