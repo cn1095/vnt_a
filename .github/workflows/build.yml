@@ -88,13 +88,13 @@ jobs:
            unzip -q android-ndk-r26d-linux.zip -d /opt/ndk
 
       - name: 设置Flutter环境
+        if: "!startsWith(matrix.NAME, 'vntApp-linux')"
         uses: subosito/flutter-action@v2.12.0 #https://github.com/subosito/flutter-action/issues/277
         with:
           channel: stable
           flutter-version: ${{ matrix.flutter-version }}
 
       - name: 固定 Rust 版本 1.77.2
-        if: "!startsWith(matrix.NAME, 'vntApp-linux')"
         shell: bash
         run: |
           echo "========================================="
@@ -432,11 +432,8 @@ jobs:
       - name: 构建 Linux AppImage（Docker Ubuntu 18.04）
         if: startsWith(matrix.NAME, 'vntApp-linux')
         run: |
-          FLUTTER_SDK=$(dirname $(dirname $(which flutter)))
-
           docker run --rm --platform ${{ matrix.DOCKER_PLATFORM }} \
             -v "${{ github.workspace }}:/workspace" \
-            -v "${FLUTTER_SDK}:/flutter" \
             -v "${HOME}/.pub-cache:/root/.pub-cache" \
             -v "${HOME}/.cargo:/root/.cargo" \
             -e PUB_CACHE=/root/.pub-cache \
@@ -453,17 +450,18 @@ jobs:
                 libsecret-1-dev libjsoncpp-dev \
                 ca-certificates wget file xz-utils unzip
 
-              # 安装并强制固定 Rust 1.77.2，禁止自动升级
-              export PATH="/root/.cargo/bin:$PATH"
-              curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | \
-                sh -s -- -y --default-toolchain 1.77.2 --no-modify-path
+              # 容器内独立安装 Flutter 3.24.5
+              git clone --depth 1 --branch 3.24.5 \
+                https://github.com/flutter/flutter.git /opt/flutter
+              export PATH="/opt/flutter/bin:$PATH"
+              flutter precache --linux
+              flutter --version
+
               rustup set auto-self-update disable
               rustup toolchain install 1.77.2 --no-self-update
               rustup default 1.77.2
               rustc -V
 
-              export PATH="/flutter/bin:$PATH"
-              flutter --version
               flutter config --no-analytics
               flutter pub get
               flutter build linux --release
