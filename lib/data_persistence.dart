@@ -474,4 +474,20 @@ class DataPersistence {
       rethrow;
     }
   }
+
+  /// 获取持久化配置文件路径（用于日志打印）
+  Future<String> getConfigFilePath() async {
+    if (Platform.isWindows) {
+      final manager = await _getConfigManager();
+      return manager.configFilePath;
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      // Android/iOS 使用 SharedPreferences，返回说明性路径
+      return 'SharedPreferences (${Platform.operatingSystem})';
+    } else {
+      // Linux/macOS 使用 SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      // SharedPreferences 在 Linux 的路径通常是 ~/.local/share/<app_id>/shared_preferences.json
+      return 'SharedPreferences (~/.local/share/top.wherewego.vnt_app/)';
+    }
+  }
 }
