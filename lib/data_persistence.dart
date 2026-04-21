@@ -484,10 +484,9 @@ class DataPersistence {
       // Android/iOS 使用 SharedPreferences，返回说明性路径
       return 'SharedPreferences (${Platform.operatingSystem})';
     } else {
-      // Linux/macOS 使用 SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      // SharedPreferences 在 Linux 的路径通常是 ~/.local/share/<app_id>/shared_preferences.json
-      return 'SharedPreferences (~/.local/share/top.wherewego.vnt_app/)';
+      // Linux/macOS 使用 SharedPreferences，显示实际路径
+      final home = Platform.environment['HOME'] ?? '';
+      return 'SharedPreferences ($home/.local/share/top.wherewego.vnt_app/)';
     }
   }
 }
