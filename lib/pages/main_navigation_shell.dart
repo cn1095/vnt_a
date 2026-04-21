@@ -141,28 +141,64 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
     // 其他平台使用Rust直接连接
     // 显示连接中对话框
+    BuildContext? dialogContext;
+    bool dialogOpen = false;
+
+    void closeDialog() {
+      if (!dialogOpen) return;
+      dialogOpen = false;
+      if (dialogContext != null && Navigator.of(dialogContext!).canPop()) {
+        Navigator.of(dialogContext!).pop();
+      } else {
+        // dialog 还未 build 完，延迟一帧再关
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (dialogContext != null && Navigator.of(dialogContext!).canPop()) {
+            Navigator.of(dialogContext!).pop();
+          }
+        });
+      }
+    }
+
     if (mounted) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final primaryColor = Theme.of(context).primaryColor;
+      dialogOpen = true;
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            content: Row(
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(width: 20),
-                Text('正在连接 ${config.configName} ...'),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  vntManager.remove(config.itemKey);
-                  Navigator.of(context).pop();
-                },
-                child: const Text('取消'),
+        builder: (BuildContext ctx) {
+          dialogContext = ctx;
+          return Dialog(
+            backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: primaryColor),
+                  const SizedBox(height: 20),
+                  Text(
+                    '正在连接 ${config.configName} ...',
+                    style: TextStyle(
+                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      vntManager.remove(config.itemKey);
+                      closeDialog();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.errorColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('取消'),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
         },
       );
@@ -178,7 +214,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         if (msg == 'success') {
           if (onece) {
             onece = false;
-            Navigator.of(context).pop(); // 关闭连接中对话框
+            closeDialog(); // 关闭连接中对话框
             setState(() {
               _selectedConfig = config;
             });
@@ -198,7 +234,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           vntManager.remove(config.itemKey);
           if (onece) {
             onece = false;
-            Navigator.of(context).pop(); // 关闭连接中对话框
+            closeDialog(); // 关闭连接中对话框
           }
           // 统一显示"服务已停止"提示
           showTopToast(context, '[${config.configName}] 服务已停止', isSuccess: false);
@@ -215,7 +251,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         if (msg.code == RustErrorType.disconnect || msg.code == RustErrorType.warn) {
           if (onece) {
             onece = false;
-            Navigator.of(context).pop(); // 关闭连接中对话框
+            closeDialog(); // 关闭连接中对话框
           }
           _handleConnectionError(msg, config.configName);
           return;
@@ -224,7 +260,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         // 其他致命错误才销毁连接
         if (onece) {
           onece = false;
-          Navigator.of(context).pop(); // 关闭连接中对话框
+          closeDialog(); // 关闭连接中对话框
           vntManager.remove(config.itemKey);
         }
         _handleConnectionError(msg, config.configName);
@@ -259,7 +295,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       debugPrint('dart catch e: $e');
       if (!mounted) return;
 
-      Navigator.of(context).pop(); // 关闭连接中对话框
+      closeDialog(); // 关闭连接中对话框
       var msg = e.toString();
       showTopToast(context, '连接失败 $msg', isSuccess: false);
     }
