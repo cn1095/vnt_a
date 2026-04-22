@@ -134,10 +134,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     }
 
     // iOS使用VPN连接
-    if (Platform.isIOS) {
-      await _connectViaIOSVPN(config);
-      return;
-    }
+    // if (Platform.isIOS) {
+    //   await _connectViaIOSVPN(config);
+    //   return;
+    // }
 
     // 其他平台使用Rust直接连接
     // 显示连接中对话框
