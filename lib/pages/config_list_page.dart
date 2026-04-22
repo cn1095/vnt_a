@@ -733,10 +733,10 @@ class _ConfigListPageState extends State<ConfigListPage> {
   // 连接VNT
   Future<void> _connectVnt(NetworkConfig config) async {
     // iOS使用VPN连接
-    if (Platform.isIOS) {
-      await _connectViaIOSVPN(config);
-      return;
-    }
+    // if (Platform.isIOS) {
+    //   await _connectViaIOSVPN(config);
+    //   return;
+    // }
     
     // 其他平台使用Rust直接连接
     // 检查是否已有连接
@@ -991,7 +991,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
         if (mounted) {
           showTopToast(context, '[${config.configName}] VPN连接成功', isSuccess: true);
           // 调用回调，跳转到房间页面
-          widget.onConfigSelected?.call(config);
+          // widget.onConfigSelected?.call(config);
         }
         
         debugPrint('[iOS VPN] Connection successful');
