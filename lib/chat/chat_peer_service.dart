@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'chat_history_store.dart';
 import 'chat_identity.dart';
@@ -65,6 +66,8 @@ class ChatPeerService {
       StreamController<ChatSessionState?>.broadcast();
   final StreamController<String> _errorController =
       StreamController<String>.broadcast();
+  final StreamTransformer<Uint8List, String> _utf8Decoder =
+      StreamTransformer<Uint8List, String>.fromBind(utf8.decoder.bind);
 
   ChatPeerService({required this.historyStore});
 
@@ -128,7 +131,7 @@ class ChatPeerService {
         final completer = Completer<void>();
         late StreamSubscription<String> sub;
         sub = socket
-            .transform(utf8.decoder)
+            .transform(_utf8Decoder)
             .transform(const LineSplitter())
             .listen((line) {
           try {
@@ -236,7 +239,7 @@ class ChatPeerService {
       _joinedSocket = socket;
       final completer = Completer<bool>();
       socket
-          .transform(utf8.decoder)
+          .transform(_utf8Decoder)
           .transform(const LineSplitter())
           .listen((line) {
         _handleJoinedLine(line, room, completer);
@@ -357,7 +360,7 @@ class ChatPeerService {
 
   void _handleSocket(Socket socket) {
     socket
-        .transform(utf8.decoder)
+        .transform(_utf8Decoder)
         .transform(const LineSplitter())
         .listen((line) {
       try {
