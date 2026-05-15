@@ -610,13 +610,88 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
       return _buildFileMessage(message);
     }
     if (message.type == ChatMessageType.call) {
-      return Text(message.content);
+      return _buildCallMessage(message);
     }
     return SelectableText(
       message.content,
       style: TextStyle(
         fontSize: context.fontBody,
         color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+      ),
+    );
+  }
+
+  Widget _buildCallMessage(ChatMessage message) {
+    final mode = message.extra['mode']?.toString() ?? '';
+    final state = message.extra['state']?.toString() ?? 'info';
+    final isRemoteAssist = mode == 'remoteAssist';
+    final isInvite = state == 'invite';
+    final isFromMe = message.senderIp == (widget.currentIp ?? '');
+    IconData icon = Icons.call_outlined;
+    if (mode == 'voice') {
+      icon = Icons.mic_none;
+    } else if (mode == 'video') {
+      icon = Icons.videocam_outlined;
+    } else if (mode == 'screen') {
+      icon = Icons.screen_share_outlined;
+    } else if (mode == 'remoteAssist') {
+      icon = Icons.settings_remote_outlined;
+    }
+    return Container(
+      constraints: BoxConstraints(maxWidth: context.w(280)),
+      padding: EdgeInsets.all(context.spacingSmall),
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(context.cardRadius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Theme.of(context).primaryColor),
+              SizedBox(width: context.spacingXSmall),
+              Expanded(
+                child: Text(
+                  message.content,
+                  style: TextStyle(
+                    fontSize: context.fontBody,
+                    fontWeight: FontWeight.w600,
+                    color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (isRemoteAssist && isInvite && !isFromMe) ...[
+            SizedBox(height: context.spacingSmall),
+            Text(
+              '同意后对方才可以继续发起远程协助控制流程。',
+              style: TextStyle(
+                fontSize: context.fontSmall,
+                color: widget.isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+              ),
+            ),
+            SizedBox(height: context.spacingSmall),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _respondRemoteAssist(message, false),
+                    child: const Text('拒绝'),
+                  ),
+                ),
+                SizedBox(width: context.spacingSmall),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _respondRemoteAssist(message, true),
+                    child: const Text('同意'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1733,12 +1808,35 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     if (!result.granted) {
       return;
     }
+    final requestId = DateTime.now().microsecondsSinceEpoch.toString();
     await _service.sendMessage(ChatMessageType.call, '发起了远程协助邀请', <String, dynamic>{
       'mode': 'remoteAssist',
+      'state': 'invite',
+      'requestId': requestId,
     });
     await _service.sendCallPacket(ChatPacketType.remoteControl, <String, dynamic>{
       'state': 'invite',
+      'requestId': requestId,
     });
+  }
+
+  Future<void> _respondRemoteAssist(ChatMessage invite, bool accepted) async {
+    final requestId = invite.extra['requestId']?.toString() ?? invite.messageId;
+    final content = accepted ? '已同意远程协助请求' : '已拒绝远程协助请求';
+    await _service.sendMessage(ChatMessageType.call, content, <String, dynamic>{
+      'mode': 'remoteAssist',
+      'state': accepted ? 'accepted' : 'rejected',
+      'requestId': requestId,
+      'targetDeviceId': invite.senderDeviceId,
+    });
+    await _service.sendCallPacket(ChatPacketType.remoteControl, <String, dynamic>{
+      'state': accepted ? 'accepted' : 'rejected',
+      'requestId': requestId,
+      'targetDeviceId': invite.senderDeviceId,
+    });
+    if (mounted) {
+      showTopToast(context, accepted ? '已同意远程协助请求' : '已拒绝远程协助请求', isSuccess: accepted);
+    }
   }
 
   void _showMembers() {
