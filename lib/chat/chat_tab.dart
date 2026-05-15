@@ -1664,6 +1664,9 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   Future<void> _downloadUrlToFile(String url, File file) async {
     final request = await HttpClient().getUrl(Uri.parse(url));
     final response = await request.close();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw HttpException('下载失败，HTTP ${response.statusCode}');
+    }
     await file.parent.create(recursive: true);
     final sink = file.openWrite();
     await response.pipe(sink);
