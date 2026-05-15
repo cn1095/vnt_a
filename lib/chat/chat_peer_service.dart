@@ -38,6 +38,8 @@ class _LocalRoom {
   final String passwordHash;
   final Map<String, Socket> memberSockets = <String, Socket>{};
   final Map<String, ChatMember> members = <String, ChatMember>{};
+  final Map<String, int> joinFailures = <String, int>{};
+  final Map<String, int> joinLockedUntil = <String, int>{};
 
   _LocalRoom({
     required this.info,
@@ -452,13 +454,34 @@ class ChatPeerService {
       return;
     }
     final hash = packet.payload['passwordHash']?.toString() ?? '';
-    if (room.passwordHash.isNotEmpty && room.passwordHash != hash) {
+    final failureKey = '${packet.senderDeviceId}@${packet.senderIp}';
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final lockedUntil = room.joinLockedUntil[failureKey] ?? 0;
+    if (lockedUntil > now) {
+      final seconds = ((lockedUntil - now) / 1000).ceil();
       socket.write(_packet(ChatPacketType.joinResult, packet.roomId, <String, dynamic>{
         'ok': false,
-        'message': '房间密码错误',
+        'message': '密码错误次数过多，请 $seconds 秒后再试',
       }).encodeLine());
+      socket.destroy();
       return;
     }
+    if (room.passwordHash.isNotEmpty && room.passwordHash != hash) {
+      final failures = (room.joinFailures[failureKey] ?? 0) + 1;
+      room.joinFailures[failureKey] = failures;
+      if (failures >= 5) {
+        room.joinLockedUntil[failureKey] = now + const Duration(minutes: 5).inMilliseconds;
+        room.joinFailures[failureKey] = 0;
+      }
+      socket.write(_packet(ChatPacketType.joinResult, packet.roomId, <String, dynamic>{
+        'ok': false,
+        'message': failures >= 5 ? '密码错误次数过多，已锁定 5 分钟' : '房间密码错误',
+      }).encodeLine());
+      socket.destroy();
+      return;
+    }
+    room.joinFailures.remove(failureKey);
+    room.joinLockedUntil.remove(failureKey);
     final member = ChatMember(
       deviceId: packet.senderDeviceId,
       name: packet.senderName,
