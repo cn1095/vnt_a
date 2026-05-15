@@ -1,7 +1,9 @@
 package top.wherewego.vnt_app;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
+import android.provider.Settings;
 import android.service.quicksettings.Tile;
 import android.util.Log;
 
@@ -88,6 +90,19 @@ public class FlutterMethodChannel {
                                 updateWidgetAndTileState(appContext, isConnected);
                             }
                             result.success(null);
+                            break;
+                        case "isRemoteAssistAccessibilityEnabled":
+                            result.success(isAccessibilityServiceEnabled());
+                            break;
+                        case "openAccessibilitySettings":
+                            if (appContext != null) {
+                                Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                appContext.startActivity(intent);
+                                result.success(true);
+                            } else {
+                                result.success(false);
+                            }
                             break;
                         default:
                             result.notImplemented();
@@ -258,6 +273,32 @@ public class FlutterMethodChannel {
      */
     public static void setAppContext(Context context) {
         appContext = context.getApplicationContext();
+    }
+
+    /**
+     * 检查远程协助无障碍服务是否已启用。
+     * Android 无障碍权限必须由用户在系统设置中手动开启，应用只能检测和引导。
+     */
+    private static boolean isAccessibilityServiceEnabled() {
+        if (appContext == null) {
+            return false;
+        }
+        String expectedService = appContext.getPackageName() + "/"
+                + VntRemoteAssistAccessibilityService.class.getName();
+        String enabledServices = Settings.Secure.getString(
+                appContext.getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        );
+        if (enabledServices == null || enabledServices.length() == 0) {
+            return false;
+        }
+        String[] services = enabledServices.split(":");
+        for (String service : services) {
+            if (expectedService.equalsIgnoreCase(service)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -60,5 +60,15 @@
 		<string>network-authentication</string>
 		<string>network-extension</string>
 	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>VNT聊天室需要访问同一虚拟组网内的设备以发现聊天室、发送消息和共享文件。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>VNT聊天室需要麦克风权限用于语音聊天。当前iOS端暂时仅支持查看对方屏幕共享。</string>
+	<key>NSCameraUsageDescription</key>
+	<string>VNT聊天室需要摄像头权限用于视频聊天。当前iOS端暂时仅支持查看对方屏幕共享。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>VNT聊天室需要读取相册以选择图片或视频进行共享。</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>VNT聊天室需要保存接收的图片或视频文件。</string>
 </dict>
 </plist>

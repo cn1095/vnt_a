@@ -36,5 +36,11 @@
 	<!-- 系统扩展说明 -->
 	<key>NSSystemExtensionUsageDescription</key>
 	<string>VNT需要创建虚拟网络设备(TUN)以建立安全的点对点连接</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>VNT聊天室需要麦克风权限用于语音聊天</string>
+	<key>NSCameraUsageDescription</key>
+	<string>VNT聊天室需要摄像头权限用于视频聊天</string>
+	<key>NSScreenCaptureDescription</key>
+	<string>VNT聊天室需要屏幕录制权限用于屏幕共享和远程协助</string>
 </dict>
 </plist>

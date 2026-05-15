@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vnt_app/theme/app_theme.dart';
+import 'package:vnt_app/chat/chat_tab.dart';
 import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/vnt/vnt_manager.dart';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
@@ -166,7 +167,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                       controller: _tabController,
                       children: [
                         _buildDevicesTab(isDark, isWideScreen),
-                        _buildChatTab(isDark),
+                        _buildChatTab(isDark, isWideScreen),
                         _buildRoutesTab(isDark, isWideScreen),
                       ],
                     )
@@ -406,37 +407,29 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     );
   }
 
-  // 聊天Tab（暂时显示占位内容）
-  Widget _buildChatTab(bool isDark) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.chat_bubble_outline,
-            size: context.w(64),
-            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-          ),
-          SizedBox(height: context.spacingMedium),
-          Text(
-            '聊天功能',
-            style: TextStyle(
-              fontSize: context.fontLarge,
-              fontWeight: FontWeight.w600,
-              color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-            ),
-          ),
-          SizedBox(height: context.spacingXSmall),
-          Text(
-            '即将推出',
-            style: TextStyle(
-              fontSize: context.fontBody,
-              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-            ),
-          ),
-        ],
-      ),
+  // 聊天Tab - 基于 VNT 虚拟局域网的去中心化聊天室
+  Widget _buildChatTab(bool isDark, bool isWideScreen) {
+    return ChatTab(
+      config: _getActiveNetworkConfig(),
+      currentIp: _currentIp,
+      devices: _devices,
+      isDark: isDark,
+      isWideScreen: isWideScreen,
     );
+  }
+
+  NetworkConfig? _getActiveNetworkConfig() {
+    if (widget.selectedConfig != null) {
+      return widget.selectedConfig;
+    }
+    final allVnts = vntManager.map;
+    for (var entry in allVnts.entries) {
+      final vntBox = entry.value;
+      if (!vntBox.isClosed()) {
+        return vntBox.getNetConfig();
+      }
+    }
+    return null;
   }
 
   // 路由Tab
@@ -2094,4 +2087,3 @@ class _LatencyChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
-

@@ -3,8 +3,13 @@
     <!-- 网络权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 聊天室音视频、语音消息、屏幕共享信令需要 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <!-- VPN服务权限 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.BIND_QUICK_SETTINGS_TILE"
         tools:ignore="ProtectedPermissions" />
     <!-- 存储权限：Android 12及以下需要 -->
@@ -13,6 +18,10 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"
         tools:ignore="ScopedStorage" />
+    <!-- Android 13+ 媒体读取权限，用于选择并共享图片、视频、语音文件 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <!-- 开机自启权限 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- 通知权限：Android 13+ 需要 -->
@@ -23,6 +32,9 @@
         android:icon="@mipmap/ic_launcher"
         android:label="VNT"
         android:requestLegacyExternalStorage="true">
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
         <!-- FileProvider配置：file_picker插件需要 -->
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -47,6 +59,18 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <!-- 远程协助无障碍服务：Android 远控必须由用户手动开启 -->
+        <service
+            android:name=".VntRemoteAssistAccessibilityService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/remote_assist_accessibility_service" />
+        </service>
         <service
             android:name=".MyTileService"
             android:icon="@mipmap/ic_launcher"
