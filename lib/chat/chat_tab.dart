@@ -1173,10 +1173,15 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
 
   Future<void> _sendText() async {
     final text = _messageController.text;
-    _messageController.clear();
+    if (text.trim().isEmpty) {
+      return;
+    }
     try {
       await _service.sendText(text);
+      _messageController.clear();
     } catch (e) {
+      _messageController.text = text;
+      _messageController.selection = TextSelection.collapsed(offset: text.length);
       if (mounted) {
         showTopToast(context, '发送失败：$e', isSuccess: false);
       }
