@@ -789,11 +789,6 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
       showTopToast(context, '当前平台暂不支持直接播放语音，请在 Android 端使用', isSuccess: false);
     }
   }
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildEmojiPanel() {
     final groups = _emojiGroups();
