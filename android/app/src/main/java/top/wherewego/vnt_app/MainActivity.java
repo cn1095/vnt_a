@@ -3,7 +3,9 @@ package top.wherewego.vnt_app;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
 import android.media.MediaRecorder;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.net.VpnService;
 import android.os.Build;
@@ -41,6 +43,7 @@ public class MainActivity extends FlutterActivity {
     private MethodChannel.Result pendingFileResult;
     private MethodChannel.Result pendingVoicePermissionResult;
     private MediaRecorder voiceRecorder;
+    private MediaPlayer voicePlayer;
     private String voiceRecordPath;
     private long voiceRecordStartMs;
 
@@ -126,6 +129,8 @@ public class MainActivity extends FlutterActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopVoicePlayer();
+        stopVoiceRecorderOnly(true);
         MyVpnService.stopVpn();
     }
 
@@ -189,6 +194,12 @@ public class MainActivity extends FlutterActivity {
                 stopVoiceRecord(result, false);
             } else if (call.method.equals("cancelRecord")) {
                 stopVoiceRecord(result, true);
+            } else if (call.method.equals("playRecord")) {
+                String url = call.argument("url");
+                playVoiceRecord(url, result);
+            } else if (call.method.equals("stopPlay")) {
+                stopVoicePlayer();
+                result.success(true);
             } else {
                 result.notImplemented();
             }
@@ -369,5 +380,50 @@ public class MainActivity extends FlutterActivity {
         }
         voiceRecordPath = null;
         voiceRecordStartMs = 0;
+    }
+
+    private void playVoiceRecord(String url, MethodChannel.Result result) {
+        if (url == null || url.length() == 0) {
+            result.error("INVALID_ARGUMENT", "url is required", null);
+            return;
+        }
+        try {
+            stopVoicePlayer();
+            voicePlayer = new MediaPlayer();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                voicePlayer.setAudioAttributes(new AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build());
+            }
+            voicePlayer.setDataSource(url);
+            voicePlayer.setOnCompletionListener(mp -> stopVoicePlayer());
+            voicePlayer.setOnErrorListener((mp, what, extra) -> {
+                stopVoicePlayer();
+                return true;
+            });
+            voicePlayer.prepareAsync();
+            voicePlayer.setOnPreparedListener(MediaPlayer::start);
+            result.success(true);
+        } catch (Exception e) {
+            stopVoicePlayer();
+            result.error("PLAY_FAILED", e.getMessage(), null);
+        }
+    }
+
+    private void stopVoicePlayer() {
+        if (voicePlayer != null) {
+            try {
+                if (voicePlayer.isPlaying()) {
+                    voicePlayer.stop();
+                }
+            } catch (Exception ignored) {
+            }
+            try {
+                voicePlayer.release();
+            } catch (Exception ignored) {
+            }
+            voicePlayer = null;
+        }
     }
 }

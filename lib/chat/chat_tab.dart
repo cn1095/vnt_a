@@ -56,6 +56,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   bool _emojiVisible = false;
   bool _voicePressed = false;
   DateTime? _voiceStartAt;
+  String? _playingVoiceMessageId;
   ChatSessionState? _session;
 
   @override
@@ -114,6 +115,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     _emojiVisible = false;
     _voicePressed = false;
     _voiceStartAt = null;
+    _playingVoiceMessageId = null;
     await _fileServer.stop();
     await _service.stop();
     if (mounted) {
@@ -593,16 +595,15 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   }
 
   Widget _buildMessageContent(ChatMessage message) {
-    if (message.type == ChatMessageType.voice && message.extra['url'] == null) {
-      return _buildInlineVoiceMessage(message);
+    if (message.type == ChatMessageType.voice) {
+      return _buildVoiceMessage(message);
     }
     if (message.type == ChatMessageType.image) {
       return _buildImageMessage(message);
     }
     if (message.type == ChatMessageType.file ||
         message.type == ChatMessageType.image ||
-        message.type == ChatMessageType.video ||
-        message.type == ChatMessageType.voice) {
+        message.type == ChatMessageType.video) {
       return _buildFileMessage(message);
     }
     if (message.type == ChatMessageType.call) {
@@ -692,24 +693,102 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  Widget _buildInlineVoiceMessage(ChatMessage message) {
+  Widget _buildVoiceMessage(ChatMessage message) {
     final durationMs = message.extra['durationMs'] is int
         ? message.extra['durationMs'] as int
         : 0;
     final seconds = (durationMs / 1000).ceil().clamp(1, 600);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.keyboard_voice_outlined,
-          color: Theme.of(context).primaryColor,
+    final url = message.extra['url']?.toString() ?? '';
+    final isPlaying = _playingVoiceMessageId == message.messageId;
+    return InkWell(
+      onTap: () => _playVoiceMessage(message),
+      child: Container(
+        constraints: BoxConstraints(minWidth: context.w(120)),
+        padding: EdgeInsets.symmetric(
+          horizontal: context.spacingSmall,
+          vertical: context.spacingXSmall,
         ),
-        SizedBox(width: context.spacingXSmall),
-        Text(
-          '$seconds 秒语音',
-          style: TextStyle(
-            fontSize: context.fontBody,
-            color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+        decoration: BoxDecoration(
+          color: Theme.of(context).primaryColor.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(context.cardRadius),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isPlaying ? Icons.stop_circle_outlined : Icons.play_circle_outline,
+              color: Theme.of(context).primaryColor,
+            ),
+            SizedBox(width: context.spacingXSmall),
+            Icon(
+              Icons.graphic_eq,
+              color: Theme.of(context).primaryColor,
+              size: context.iconSmall,
+            ),
+            SizedBox(width: context.spacingXSmall),
+            Text(
+              '$seconds"',
+              style: TextStyle(
+                fontSize: context.fontBody,
+                fontWeight: FontWeight.w600,
+                color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+              ),
+            ),
+            if (url.isEmpty) ...[
+              SizedBox(width: context.spacingXSmall),
+              Text(
+                '未录音',
+                style: TextStyle(
+                  fontSize: context.fontSmall,
+                  color: widget.isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _playVoiceMessage(ChatMessage message) async {
+    final url = message.extra['url']?.toString() ?? '';
+    if (_playingVoiceMessageId == message.messageId) {
+      await ChatVoiceRecorder.stopPlay();
+      if (mounted) {
+        setState(() {
+          _playingVoiceMessageId = null;
+        });
+      }
+      return;
+    }
+    if (url.isEmpty) {
+      showTopToast(context, '该语音没有可播放录音文件', isSuccess: false);
+      return;
+    }
+    final started = await ChatVoiceRecorder.play(url);
+    if (!mounted) {
+      return;
+    }
+    if (started) {
+      setState(() {
+        _playingVoiceMessageId = message.messageId;
+      });
+      Future<void>.delayed(const Duration(seconds: 1), () {
+        final durationMs = message.extra['durationMs'] is int
+            ? message.extra['durationMs'] as int
+            : 0;
+        Future<void>.delayed(Duration(milliseconds: durationMs), () {
+          if (mounted && _playingVoiceMessageId == message.messageId) {
+            setState(() {
+              _playingVoiceMessageId = null;
+            });
+          }
+        });
+      });
+    } else {
+      showTopToast(context, '当前平台暂不支持直接播放语音，请在 Android 端使用', isSuccess: false);
+    }
+  }
           ),
         ),
       ],

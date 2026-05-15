@@ -55,4 +55,27 @@ class ChatVoiceRecorder {
       await _channel.invokeMethod<bool>('cancelRecord');
     } catch (_) {}
   }
+
+  static Future<bool> play(String url) async {
+    if (!Platform.isAndroid || url.isEmpty) {
+      return false;
+    }
+    try {
+      final result = await _channel.invokeMethod<bool>('playRecord', <String, dynamic>{
+        'url': url,
+      });
+      return result == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> stopPlay() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    try {
+      await _channel.invokeMethod<bool>('stopPlay');
+    } catch (_) {}
+  }
 }
