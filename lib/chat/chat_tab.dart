@@ -36,7 +36,7 @@ class ChatTab extends StatefulWidget {
   State<ChatTab> createState() => _ChatTabState();
 }
 
-class _ChatTabState extends State<ChatTab> {
+class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   final ChatHistoryStore _historyStore = ChatHistoryStore();
   final ChatFileServer _fileServer = ChatFileServer();
   late final ChatPeerService _service;
@@ -54,6 +54,9 @@ class _ChatTabState extends State<ChatTab> {
   ChatSessionState? _session;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _service = ChatPeerService(historyStore: _historyStore);
@@ -66,6 +69,7 @@ class _ChatTabState extends State<ChatTab> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.config?.itemKey != widget.config?.itemKey ||
         oldWidget.currentIp != widget.currentIp) {
+      unawaited(_service.leaveRoom(deleteHistory: false));
       _started = false;
       _rooms.clear();
       _messages.clear();
@@ -83,8 +87,8 @@ class _ChatTabState extends State<ChatTab> {
     _errorSub?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
-    _fileServer.stop();
-    _service.dispose();
+    unawaited(_fileServer.stop());
+    unawaited(_service.dispose());
     super.dispose();
   }
 
@@ -181,6 +185,7 @@ class _ChatTabState extends State<ChatTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (widget.config == null || widget.currentIp == null) {
       return _buildEmpty('未连接组网，无法使用聊天室');
     }

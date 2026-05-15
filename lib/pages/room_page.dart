@@ -1979,32 +1979,43 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                   SizedBox(width: context.spacing(12)),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () async {
+                      onPressed: () {
                         Navigator.pop(context);
 
                         // 获取所有连接的key
                         final allVnts = vntManager.map;
                         final keys = allVnts.keys.toList();
 
-                        // 断开所有连接
-                        for (var key in keys) {
-                          await vntManager.remove(key);
-                        }
-
                         // 清空延迟历史数据
                         _clearLatencyHistory();
+
+                        setState(() {
+                          _devices = [];
+                          _currentIp = null;
+                        });
+
+                        if (widget.onDisconnect != null) {
+                          widget.onDisconnect!();
+                        }
+
+                        // 断开底层连接可能需要等待系统 VPN / Rust 资源释放，放到后台执行，避免卡住房间页。
+                        unawaited(() async {
+                          try {
+                            for (var key in keys) {
+                              await vntManager.remove(key);
+                            }
+
+                            // 更新系统托盘
+                            await SystemTrayManager().updateMenu();
+                            await SystemTrayManager().updateTooltip();
+                          } catch (e) {
+                            debugPrint('断开连接后台清理失败: $e');
+                          }
+                        }());
 
                         // 更新 Android 磁贴、小组件和通知栏
                         if (Platform.isAndroid) {
                           VntAppCall.updateWidgetAndTile(false);
-                        }
-
-                        // 更新系统托盘
-                        await SystemTrayManager().updateMenu();
-                        await SystemTrayManager().updateTooltip();
-
-                        if (widget.onDisconnect != null) {
-                          widget.onDisconnect!();
                         }
                       },
                       style: ElevatedButton.styleFrom(
