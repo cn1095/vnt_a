@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:vnt_app/chat/chat_file_server.dart';
 import 'package:vnt_app/chat/chat_history_store.dart';
 import 'package:vnt_app/chat/chat_identity.dart';
@@ -601,9 +602,11 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     if (message.type == ChatMessageType.image) {
       return _buildImageMessage(message);
     }
+    if (message.type == ChatMessageType.video) {
+      return _buildVideoMessage(message);
+    }
     if (message.type == ChatMessageType.file ||
-        message.type == ChatMessageType.image ||
-        message.type == ChatMessageType.video) {
+        message.type == ChatMessageType.image) {
       return _buildFileMessage(message);
     }
     if (message.type == ChatMessageType.call) {
@@ -614,6 +617,77 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
       style: TextStyle(
         fontSize: context.fontBody,
         color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+      ),
+    );
+  }
+
+  Widget _buildVideoMessage(ChatMessage message) {
+    final name = message.extra['name']?.toString() ?? message.content;
+    final size = message.extra['size'] is int ? message.extra['size'] as int : 0;
+    final url = message.extra['url']?.toString() ?? '';
+    return Container(
+      constraints: BoxConstraints(maxWidth: context.w(260)),
+      padding: EdgeInsets.all(context.spacingSmall),
+      decoration: BoxDecoration(
+        color: widget.isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
+        borderRadius: BorderRadius.circular(context.cardRadius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => _openVideoMessage(url),
+            borderRadius: BorderRadius.circular(context.cardRadius),
+            child: Container(
+              height: context.w(130),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(context.cardRadius),
+              ),
+              child: Icon(
+                Icons.play_circle_fill,
+                color: Colors.white,
+                size: context.iconXLarge,
+              ),
+            ),
+          ),
+          SizedBox(height: context.spacingXSmall),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: context.fontBody,
+              fontWeight: FontWeight.w600,
+              color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+            ),
+          ),
+          SizedBox(height: context.spacingXXSmall),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  size > 0 ? _formatSize(size) : '视频文件',
+                  style: TextStyle(
+                    fontSize: context.fontSmall,
+                    color: widget.isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: '打开',
+                onPressed: () => _openVideoMessage(url),
+                icon: Icon(Icons.open_in_new, size: context.iconSmall),
+              ),
+              IconButton(
+                tooltip: '下载',
+                onPressed: () => _downloadSharedFile(message),
+                icon: Icon(Icons.download_outlined, size: context.iconSmall),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1497,6 +1571,22 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
         );
       },
     );
+  }
+
+  Future<void> _openVideoMessage(String url) async {
+    if (url.isEmpty) {
+      showTopToast(context, '视频地址无效', isSuccess: false);
+      return;
+    }
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      showTopToast(context, '视频地址无效', isSuccess: false);
+      return;
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      showTopToast(context, '无法打开视频，请尝试下载后播放', isSuccess: false);
+    }
   }
 
   Future<void> _sendCallAction(String mode) async {
