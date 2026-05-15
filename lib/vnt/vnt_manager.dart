@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:vnt_app/chat/chat_runtime_registry.dart';
 import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
 import 'package:vnt_app/utils/ip_utils.dart';
@@ -293,6 +294,9 @@ class VntManager {
     }
     try {
       connecting = true;
+      if (map.isNotEmpty || ChatRuntimeRegistry.hasActiveRuntime) {
+        await ChatRuntimeRegistry.disposeAll();
+      }
 
       // macOS 权限检查：如果没有权限，请求重新启动
       if (Platform.isMacOS) {
@@ -320,6 +324,7 @@ class VntManager {
   }
 
   Future<void> remove(String key) async {
+    await ChatRuntimeRegistry.disposeAll();
     var vnt = map.remove(key);
     if (vnt != null) {
       await vnt.close();
@@ -331,6 +336,7 @@ class VntManager {
   }
 
   Future<void> removeAll() async {
+    await ChatRuntimeRegistry.disposeAll();
     for (var element in map.entries) {
       await element.value.close();
     }

@@ -10,6 +10,7 @@ import 'package:vnt_app/chat/chat_identity.dart';
 import 'package:vnt_app/chat/chat_models.dart';
 import 'package:vnt_app/chat/chat_peer_service.dart';
 import 'package:vnt_app/chat/chat_platform_permissions.dart';
+import 'package:vnt_app/chat/chat_runtime_registry.dart';
 import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
 import 'package:vnt_app/theme/app_theme.dart';
@@ -60,6 +61,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   void initState() {
     super.initState();
     _service = ChatPeerService(historyStore: _historyStore);
+    ChatRuntimeRegistry.register(this, _stopRuntimeForNetworkShutdown);
     _bindService();
     _startIfReady();
   }
@@ -81,6 +83,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   @override
   void dispose() {
     _scanTimer?.cancel();
+    ChatRuntimeRegistry.unregister(this);
     _roomsSub?.cancel();
     _messageSub?.cancel();
     _sessionSub?.cancel();
@@ -90,6 +93,20 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     unawaited(_fileServer.stop());
     unawaited(_service.dispose());
     super.dispose();
+  }
+
+  Future<void> _stopRuntimeForNetworkShutdown() async {
+    _scanTimer?.cancel();
+    _scanTimer = null;
+    _started = false;
+    _rooms.clear();
+    _messages.clear();
+    _session = null;
+    await _fileServer.stop();
+    await _service.stop();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _bindService() {
@@ -155,6 +172,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
       return;
     }
     _started = true;
+    await ChatRuntimeRegistry.disposeAll(except: this);
     final local = ChatLocalNode(
       networkId: ChatIdentity.networkId(config),
       deviceId: config.deviceID,

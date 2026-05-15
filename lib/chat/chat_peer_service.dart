@@ -90,16 +90,36 @@ class ChatPeerService {
   }
 
   Future<void> dispose() async {
+    await stop(closeStreams: true);
+  }
+
+  Future<void> stop({bool closeStreams = false}) async {
     await leaveRoom(deleteHistory: false);
+    _joinedSocket?.destroy();
+    _joinedSocket = null;
+    for (final room in _localRooms.values) {
+      for (final socket in room.memberSockets.values) {
+        socket.destroy();
+      }
+    }
+    _localRooms.clear();
+    _remoteRooms.clear();
+    _session = null;
     final server = _server;
     _server = null;
     if (server != null) {
       await server.close();
     }
-    await _roomsController.close();
-    await _messageController.close();
-    await _sessionController.close();
-    await _errorController.close();
+    _emitRooms();
+    if (!_sessionController.isClosed) {
+      _sessionController.add(null);
+    }
+    if (closeStreams) {
+      await _roomsController.close();
+      await _messageController.close();
+      await _sessionController.close();
+      await _errorController.close();
+    }
   }
 
   Future<void> scanPeers(List<String> peerIps) async {
@@ -656,6 +676,8 @@ class ChatPeerService {
   }
 
   void _emitRooms() {
-    _roomsController.add(_mergedRooms());
+    if (!_roomsController.isClosed) {
+      _roomsController.add(_mergedRooms());
+    }
   }
 }

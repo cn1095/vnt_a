@@ -18,6 +18,7 @@ import 'package:vnt_app/utils/log_utils.dart';
 import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/system_tray_manager.dart';
 import 'package:vnt_app/config_manager.dart';
+import 'package:vnt_app/chat/chat_runtime_registry.dart';
 
 final SystemTray systemTray = SystemTray();
 final AppWindow appWindow = AppWindow();
@@ -312,6 +313,7 @@ class _MainAppState extends State<MainApp> with WindowListener {
         // 如果当前已有连接，先断开所有连接
         if (vntManager.hasConnection()) {
           debugPrint('磁贴启动：检测到已有连接，先断开所有连接');
+          await ChatRuntimeRegistry.disposeAll();
           await vntManager.removeAll();
           // 等待更长时间确保断开完成和VPN资源释放
           await Future.delayed(const Duration(milliseconds: 1000));
@@ -407,6 +409,7 @@ class _MainAppState extends State<MainApp> with WindowListener {
       final shouldClose = await _showMacOSCloseConfirmationDialog();
       if (shouldClose == true) {
         // 退出应用：先断开连接再关闭
+        await ChatRuntimeRegistry.disposeAll();
         await vntManager.removeAll();
         windowManager.setPreventClose(false);
         await windowManager.destroy();
@@ -428,6 +431,7 @@ class _MainAppState extends State<MainApp> with WindowListener {
       if (isClose) {
         // 退出应用：先断开连接再关闭
         debugPrint('退出应用');
+        await ChatRuntimeRegistry.disposeAll();
         await vntManager.removeAll();
         windowManager.setPreventClose(false);
         if (Platform.isLinux) {
