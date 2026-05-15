@@ -52,6 +52,9 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   Timer? _scanTimer;
   bool _started = false;
   bool _loading = false;
+  bool _emojiVisible = false;
+  bool _voicePressed = false;
+  DateTime? _voiceStartAt;
   ChatSessionState? _session;
 
   @override
@@ -69,13 +72,18 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   @override
   void didUpdateWidget(ChatTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.config?.itemKey != widget.config?.itemKey ||
-        oldWidget.currentIp != widget.currentIp) {
+    if (oldWidget.config?.itemKey != widget.config?.itemKey) {
       unawaited(_service.leaveRoom(deleteHistory: false));
       _started = false;
       _rooms.clear();
       _messages.clear();
       _session = null;
+      _startIfReady();
+      return;
+    }
+    if (!_started &&
+        widget.currentIp != null &&
+        widget.currentIp!.isNotEmpty) {
       _startIfReady();
     }
   }
@@ -102,6 +110,9 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     _rooms.clear();
     _messages.clear();
     _session = null;
+    _emojiVisible = false;
+    _voicePressed = false;
+    _voiceStartAt = null;
     await _fileServer.stop();
     await _service.stop();
     if (mounted) {
@@ -362,6 +373,11 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
                   onPressed: _showShareMenu,
                   icon: const Icon(Icons.attach_file),
                 ),
+                IconButton(
+                  tooltip: '表情',
+                  onPressed: _toggleEmojiPanel,
+                  icon: Icon(_emojiVisible ? Icons.keyboard_alt_outlined : Icons.emoji_emotions_outlined),
+                ),
                 Expanded(
                   child: TextField(
                     controller: _messageController,
@@ -380,10 +396,32 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
                   onPressed: _sendText,
                   icon: const Icon(Icons.send),
                 ),
+                SizedBox(width: context.spacingXSmall),
+                GestureDetector(
+                  onLongPressStart: (_) => _startVoiceHold(),
+                  onLongPressEnd: (_) => _finishVoiceHold(cancel: false),
+                  onLongPressCancel: () => _finishVoiceHold(cancel: true),
+                  child: Container(
+                    height: context.w(40),
+                    width: context.w(40),
+                    decoration: BoxDecoration(
+                      color: _voicePressed
+                          ? Theme.of(context).primaryColor.withOpacity(0.22)
+                          : Theme.of(context).primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(context.cardRadius),
+                    ),
+                    child: Icon(
+                      Icons.keyboard_voice_outlined,
+                      color: Theme.of(context).primaryColor,
+                      size: context.iconSmall,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
+        if (_emojiVisible) _buildEmojiPanel(),
       ],
     );
   }
@@ -554,6 +592,9 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   }
 
   Widget _buildMessageContent(ChatMessage message) {
+    if (message.type == ChatMessageType.voice && message.extra['url'] == null) {
+      return _buildInlineVoiceMessage(message);
+    }
     if (message.type == ChatMessageType.file ||
         message.type == ChatMessageType.image ||
         message.type == ChatMessageType.video ||
@@ -568,6 +609,72 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
       style: TextStyle(
         fontSize: context.fontBody,
         color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+      ),
+    );
+  }
+
+  Widget _buildInlineVoiceMessage(ChatMessage message) {
+    final durationMs = message.extra['durationMs'] is int
+        ? message.extra['durationMs'] as int
+        : 0;
+    final seconds = (durationMs / 1000).ceil().clamp(1, 600);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.keyboard_voice_outlined,
+          color: Theme.of(context).primaryColor,
+        ),
+        SizedBox(width: context.spacingXSmall),
+        Text(
+          '$seconds 秒语音',
+          style: TextStyle(
+            fontSize: context.fontBody,
+            color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmojiPanel() {
+    final emojis = <String>[
+      '😀', '😁', '😂', '🤣', '😊', '😍', '😘', '😎',
+      '😢', '😭', '😡', '👍', '👎', '👏', '🙏', '💪',
+      '🎉', '❤️', '🔥', '⭐', '✅', '❌', '⚠️', '📎',
+    ];
+    final isDark = widget.isDark;
+    return Container(
+      height: context.w(150),
+      padding: EdgeInsets.all(context.spacingSmall),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? AppTheme.darkDivider : AppTheme.lightDivider,
+          ),
+        ),
+      ),
+      child: GridView.builder(
+        itemCount: emojis.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 8,
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
+        ),
+        itemBuilder: (context, index) {
+          final emoji = emojis[index];
+          return InkWell(
+            borderRadius: BorderRadius.circular(context.cardRadius),
+            onTap: () => _insertEmoji(emoji),
+            child: Center(
+              child: Text(
+                emoji,
+                style: TextStyle(fontSize: context.sp(22)),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -725,6 +832,65 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     } catch (e) {
       if (mounted) {
         showTopToast(context, '发送失败：$e', isSuccess: false);
+      }
+    }
+  }
+
+  void _toggleEmojiPanel() {
+    setState(() {
+      _emojiVisible = !_emojiVisible;
+    });
+  }
+
+  void _insertEmoji(String emoji) {
+    final value = _messageController.value;
+    final selection = value.selection;
+    final start = selection.start < 0 ? value.text.length : selection.start;
+    final end = selection.end < 0 ? value.text.length : selection.end;
+    final nextText = value.text.replaceRange(start, end, emoji);
+    final nextOffset = start + emoji.length;
+    _messageController.value = TextEditingValue(
+      text: nextText,
+      selection: TextSelection.collapsed(offset: nextOffset),
+    );
+  }
+
+  void _startVoiceHold() {
+    setState(() {
+      _emojiVisible = false;
+      _voicePressed = true;
+      _voiceStartAt = DateTime.now();
+    });
+    showTopToast(context, '正在录制语音，松开发送', isSuccess: true);
+  }
+
+  Future<void> _finishVoiceHold({required bool cancel}) async {
+    final start = _voiceStartAt;
+    setState(() {
+      _voicePressed = false;
+      _voiceStartAt = null;
+    });
+    if (cancel || start == null) {
+      return;
+    }
+    final durationMs = DateTime.now().difference(start).inMilliseconds;
+    if (durationMs < 600) {
+      showTopToast(context, '语音时间太短', isSuccess: false);
+      return;
+    }
+    try {
+      await _service.sendMessage(
+        ChatMessageType.voice,
+        '语音消息',
+        <String, dynamic>{
+          'durationMs': durationMs,
+          'recorded': false,
+          'note': '真实录音文件采集待接入平台原生录音模块',
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        showTopToast(context, '语音消息发送失败：$e', isSuccess: false);
       }
     }
   }
