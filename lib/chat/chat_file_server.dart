@@ -101,6 +101,24 @@ class ChatFileServer {
     return entry;
   }
 
+  Future<SharedFileEntry?> shareExistingFile(String filePath, {String? displayName}) async {
+    await start();
+    final file = File(filePath);
+    if (!await file.exists()) {
+      return null;
+    }
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
+    final entry = SharedFileEntry(
+      id: id,
+      name: displayName ?? file.path.split(Platform.pathSeparator).last,
+      path: file.path,
+      size: await file.length(),
+      isDirectory: false,
+    );
+    _entries[id] = entry;
+    return entry;
+  }
+
   Future<void> _handleRequest(HttpRequest request) async {
     try {
       final segments = request.uri.pathSegments;

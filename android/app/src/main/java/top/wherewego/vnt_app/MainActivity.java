@@ -3,6 +3,7 @@ package top.wherewego.vnt_app;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.net.VpnService;
 import android.os.Build;
@@ -16,6 +17,8 @@ import androidx.core.content.ContextCompat;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -28,11 +31,18 @@ public class MainActivity extends FlutterActivity {
     private static final int VPN_REQUEST_CODE = 1;
     private static final int CREATE_FILE_REQUEST_CODE = 2;
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 3;
+    private static final int VOICE_PERMISSION_REQUEST_CODE = 4;
 
     private static final String FILE_CHANNEL = "top.wherewego.vnt/file";
+    private static final String VOICE_CHANNEL = "top.wherewego.vnt/chat_voice";
     private MethodChannel fileChannel;
+    private MethodChannel voiceChannel;
     private String pendingFilePath;
     private MethodChannel.Result pendingFileResult;
+    private MethodChannel.Result pendingVoicePermissionResult;
+    private MediaRecorder voiceRecorder;
+    private String voiceRecordPath;
+    private long voiceRecordStartMs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,6 +90,16 @@ public class MainActivity extends FlutterActivity {
             } else {
                 Log.w(TAG, "通知权限被拒绝，跳过通知服务启动");
                 // 即使没有通知权限，应用也应该能正常运行
+            }
+        } else if (requestCode == VOICE_PERMISSION_REQUEST_CODE) {
+            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (pendingVoicePermissionResult != null) {
+                if (granted) {
+                    startVoiceRecordInternal(pendingVoicePermissionResult);
+                } else {
+                    pendingVoicePermissionResult.error("NO_PERMISSION", "录音权限被拒绝", null);
+                }
+                pendingVoicePermissionResult = null;
             }
         }
     }
@@ -156,6 +176,19 @@ public class MainActivity extends FlutterActivity {
 
                 // 使用 SAF 创建文件
                 createFile(fileName, mimeType != null ? mimeType : "*/*");
+            } else {
+                result.notImplemented();
+            }
+        });
+
+        voiceChannel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), VOICE_CHANNEL);
+        voiceChannel.setMethodCallHandler((call, result) -> {
+            if (call.method.equals("startRecord")) {
+                startVoiceRecord(result);
+            } else if (call.method.equals("stopRecord")) {
+                stopVoiceRecord(result, false);
+            } else if (call.method.equals("cancelRecord")) {
+                stopVoiceRecord(result, true);
             } else {
                 result.notImplemented();
             }
@@ -251,5 +284,90 @@ public class MainActivity extends FlutterActivity {
                 pendingFileResult = null;
             }
         }
+    }
+
+    private void startVoiceRecord(MethodChannel.Result result) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            pendingVoicePermissionResult = result;
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    VOICE_PERMISSION_REQUEST_CODE
+            );
+            return;
+        }
+        startVoiceRecordInternal(result);
+    }
+
+    private void startVoiceRecordInternal(MethodChannel.Result result) {
+        try {
+            stopVoiceRecorderOnly(true);
+            File dir = new File(getCacheDir(), "chat_voice");
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            File outFile = new File(dir, "voice_" + System.currentTimeMillis() + ".m4a");
+            voiceRecordPath = outFile.getAbsolutePath();
+            voiceRecordStartMs = System.currentTimeMillis();
+
+            voiceRecorder = new MediaRecorder();
+            voiceRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            voiceRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+            voiceRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            voiceRecorder.setAudioSamplingRate(44100);
+            voiceRecorder.setAudioEncodingBitRate(96000);
+            voiceRecorder.setOutputFile(voiceRecordPath);
+            voiceRecorder.prepare();
+            voiceRecorder.start();
+            result.success(true);
+        } catch (Exception e) {
+            stopVoiceRecorderOnly(true);
+            result.error("RECORD_START_FAILED", e.getMessage(), null);
+        }
+    }
+
+    private void stopVoiceRecord(MethodChannel.Result result, boolean cancel) {
+        try {
+            String path = voiceRecordPath;
+            long durationMs = voiceRecordStartMs > 0 ? System.currentTimeMillis() - voiceRecordStartMs : 0;
+            stopVoiceRecorderOnly(cancel);
+            if (cancel || path == null || durationMs <= 0) {
+                result.success(null);
+                return;
+            }
+            Map<String, Object> data = new HashMap<>();
+            data.put("path", path);
+            data.put("durationMs", (int) durationMs);
+            result.success(data);
+        } catch (Exception e) {
+            stopVoiceRecorderOnly(true);
+            result.error("RECORD_STOP_FAILED", e.getMessage(), null);
+        }
+    }
+
+    private void stopVoiceRecorderOnly(boolean deleteFile) {
+        if (voiceRecorder != null) {
+            try {
+                voiceRecorder.stop();
+            } catch (Exception ignored) {
+            }
+            try {
+                voiceRecorder.release();
+            } catch (Exception ignored) {
+            }
+            voiceRecorder = null;
+        }
+        if (deleteFile && voiceRecordPath != null) {
+            try {
+                File file = new File(voiceRecordPath);
+                if (file.exists()) {
+                    file.delete();
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        voiceRecordPath = null;
+        voiceRecordStartMs = 0;
     }
 }

@@ -11,6 +11,7 @@ import 'package:vnt_app/chat/chat_models.dart';
 import 'package:vnt_app/chat/chat_peer_service.dart';
 import 'package:vnt_app/chat/chat_platform_permissions.dart';
 import 'package:vnt_app/chat/chat_runtime_registry.dart';
+import 'package:vnt_app/chat/chat_voice_recorder.dart';
 import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
 import 'package:vnt_app/theme/app_theme.dart';
@@ -1060,6 +1061,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
       _voiceStartAt = DateTime.now();
     });
     showTopToast(context, '正在录制语音，松开发送', isSuccess: true);
+    unawaited(ChatVoiceRecorder.start());
   }
 
   Future<void> _finishVoiceHold({required bool cancel}) async {
@@ -1069,14 +1071,35 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
       _voiceStartAt = null;
     });
     if (cancel || start == null) {
+      await ChatVoiceRecorder.cancel();
       return;
     }
     final durationMs = DateTime.now().difference(start).inMilliseconds;
     if (durationMs < 600) {
+      await ChatVoiceRecorder.cancel();
       showTopToast(context, '语音时间太短', isSuccess: false);
       return;
     }
     try {
+      final record = await ChatVoiceRecorder.stop();
+      if (record != null) {
+        final entry = await _fileServer.shareExistingFile(
+          record.path,
+          displayName: '语音_${DateTime.now().millisecondsSinceEpoch}.m4a',
+        );
+        if (entry != null) {
+          setState(() {});
+          final payload = entry.toJson(widget.currentIp ?? '');
+          payload['durationMs'] = record.durationMs;
+          payload['recorded'] = true;
+          await _service.sendMessage(
+            ChatMessageType.voice,
+            entry.name,
+            payload,
+          );
+          return;
+        }
+      }
       await _service.sendMessage(
         ChatMessageType.voice,
         '语音消息',
