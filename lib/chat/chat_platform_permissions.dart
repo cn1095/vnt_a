@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class ChatPermissionResult {
   final bool granted;
@@ -25,12 +24,10 @@ class ChatPlatformPermissions {
       );
     }
     if (Platform.isAndroid) {
-      final mic = await Permission.microphone.request();
-      final camera = await Permission.camera.request();
-      if (mic.isGranted && camera.isGranted) {
-        return const ChatPermissionResult(granted: true, message: '音视频权限已允许');
-      }
-      return const ChatPermissionResult(granted: false, message: '需要允许麦克风和摄像头权限');
+      return const ChatPermissionResult(
+        granted: true,
+        message: 'Android 音视频权限已在清单声明，真正采集时由原生媒体模块请求运行时授权',
+      );
     }
     if (Platform.isMacOS) {
       return const ChatPermissionResult(
