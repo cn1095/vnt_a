@@ -130,32 +130,57 @@ class ChatFileServer {
   }
 
   Future<void> _writeDirectoryList(HttpRequest request, SharedFileEntry entry) async {
-    final dir = Directory(entry.path);
+    final relative = _normalizeRelativePath(request.uri.queryParameters['path'] ?? '');
+    final dir = Directory(_joinSharedPath(entry.path, relative));
+    if (!await dir.exists()) {
+      await _writeJson(request, 404, <String, dynamic>{'error': 'not_found'});
+      return;
+    }
     final list = <Map<String, dynamic>>[];
     await for (final entity in dir.list(followLinks: false)) {
       final stat = await entity.stat();
       final name = entity.path.split(Platform.pathSeparator).last;
+      final childRelative = relative.isEmpty ? name : '$relative/$name';
+      final encodedPath = Uri.encodeComponent(childRelative);
       list.add({
         'name': name,
         'isDirectory': entity is Directory,
         'size': entity is File ? stat.size : 0,
-        'url': entity is File
-            ? 'http://${request.headers.host}/files/${entry.id}/${Uri.encodeComponent(name)}'
-            : '',
+        'path': childRelative,
+        'url': entity is File ? 'http://${request.headers.host}/files/${entry.id}/$encodedPath' : '',
+        'listUrl': entity is Directory ? 'http://${request.headers.host}/list/${entry.id}?path=$encodedPath' : '',
       });
     }
-    await _writeJson(request, 200, <String, dynamic>{'files': list});
+    list.sort((a, b) {
+      final aDir = a['isDirectory'] == true;
+      final bDir = b['isDirectory'] == true;
+      if (aDir != bDir) {
+        return aDir ? -1 : 1;
+      }
+      return a['name'].toString().toLowerCase().compareTo(b['name'].toString().toLowerCase());
+    });
+    final parent = relative.contains('/')
+        ? relative.substring(0, relative.lastIndexOf('/'))
+        : '';
+    await _writeJson(request, 200, <String, dynamic>{
+      'path': relative,
+      'parentPath': relative.isEmpty ? null : parent,
+      'parentUrl': relative.isEmpty
+          ? null
+          : 'http://${request.headers.host}/list/${entry.id}?path=${Uri.encodeComponent(parent)}',
+      'files': list,
+    });
   }
 
   Future<void> _writeFile(HttpRequest request, SharedFileEntry entry, String relative) async {
     File file;
     if (entry.isDirectory) {
-      final safeRelative = Uri.decodeComponent(relative).replaceAll('\\', '/');
-      if (safeRelative.contains('..')) {
+      final safeRelative = _normalizeRelativePath(Uri.decodeComponent(relative));
+      if (safeRelative.isEmpty) {
         await _writeJson(request, 403, <String, dynamic>{'error': 'forbidden'});
         return;
       }
-      file = File('${entry.path}${Platform.pathSeparator}${safeRelative.replaceAll('/', Platform.pathSeparator)}');
+      file = File(_joinSharedPath(entry.path, safeRelative));
     } else {
       file = File(entry.path);
     }
@@ -199,5 +224,21 @@ class ChatFileServer {
     request.response.headers.contentType = ContentType.json;
     request.response.write(jsonEncode(body));
     await request.response.close();
+  }
+
+  String _normalizeRelativePath(String value) {
+    final decoded = Uri.decodeComponent(value).replaceAll('\\', '/');
+    final parts = decoded
+        .split('/')
+        .where((part) => part.isNotEmpty && part != '.' && part != '..')
+        .toList();
+    return parts.join('/');
+  }
+
+  String _joinSharedPath(String root, String relative) {
+    if (relative.isEmpty) {
+      return root;
+    }
+    return '$root${Platform.pathSeparator}${relative.replaceAll('/', Platform.pathSeparator)}';
   }
 }

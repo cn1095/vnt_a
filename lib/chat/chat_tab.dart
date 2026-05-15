@@ -638,14 +638,10 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   }
 
   Widget _buildEmojiPanel() {
-    final emojis = <String>[
-      '😀', '😁', '😂', '🤣', '😊', '😍', '😘', '😎',
-      '😢', '😭', '😡', '👍', '👎', '👏', '🙏', '💪',
-      '🎉', '❤️', '🔥', '⭐', '✅', '❌', '⚠️', '📎',
-    ];
+    final groups = _emojiGroups();
     final isDark = widget.isDark;
     return Container(
-      height: context.w(150),
+      height: context.w(230),
       padding: EdgeInsets.all(context.spacingSmall),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
@@ -655,28 +651,152 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
           ),
         ),
       ),
-      child: GridView.builder(
-        itemCount: emojis.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 8,
-          mainAxisSpacing: 6,
-          crossAxisSpacing: 6,
-        ),
-        itemBuilder: (context, index) {
-          final emoji = emojis[index];
-          return InkWell(
-            borderRadius: BorderRadius.circular(context.cardRadius),
-            onTap: () => _insertEmoji(emoji),
-            child: Center(
-              child: Text(
-                emoji,
-                style: TextStyle(fontSize: context.sp(22)),
+      child: DefaultTabController(
+        length: groups.length,
+        child: Column(
+          children: [
+            SizedBox(
+              height: context.w(34),
+              child: TabBar(
+                isScrollable: true,
+                indicatorColor: Theme.of(context).primaryColor,
+                labelColor: Theme.of(context).primaryColor,
+                unselectedLabelColor: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                tabs: groups.map((group) => Tab(text: group.title)).toList(),
               ),
             ),
-          );
-        },
+            SizedBox(height: context.spacingXSmall),
+            Expanded(
+              child: TabBarView(
+                children: groups.map((group) {
+                  return GridView.builder(
+                    itemCount: group.emojis.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 8,
+                      mainAxisSpacing: 6,
+                      crossAxisSpacing: 6,
+                    ),
+                    itemBuilder: (context, index) {
+                      final emoji = group.emojis[index];
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(context.cardRadius),
+                        onTap: () => _insertEmoji(emoji),
+                        child: Center(
+                          child: Text(
+                            emoji,
+                            style: TextStyle(fontSize: context.sp(22)),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  List<_EmojiGroup> _emojiGroups() {
+    return const <_EmojiGroup>[
+      _EmojiGroup('常用', <String>[
+        '😀', '😁', '😂', '🤣', '😊', '😍', '😘', '😎', '😭', '😡', '👍', '👎',
+        '👏', '🙏', '💪', '🎉', '❤️', '🔥', '⭐', '✅', '❌', '⚠️', '📎', '💯',
+      ]),
+      _EmojiGroup('笑脸', <String>[
+        '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊',
+        '😇', '🥰', '😍', '🤩', '😘', '😗', '☺️', '😚', '😙', '🥲', '😋', '😛',
+        '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🫢', '🫣', '🤫', '🤔', '🫡', '🤐',
+        '🤨', '😐', '😑', '😶', '🫥', '😶‍🌫️', '😏', '😒', '🙄', '😬', '😮‍💨', '🤥',
+        '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵',
+        '🥶', '🥴', '😵', '😵‍💫', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐', '😕',
+        '🫤', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '🥹', '😦', '😧',
+        '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫',
+        '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👻',
+      ]),
+      _EmojiGroup('手势', <String>[
+        '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🫰', '🤟',
+        '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '🫵', '👍', '👎', '✊',
+        '👊', '🤛', '🤜', '👏', '🙌', '🫶', '👐', '🤲', '🤝', '🙏', '✍️', '💅',
+        '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁',
+        '🦷', '🦴', '👀', '👁️', '👅', '👄', '🫦',
+      ]),
+      _EmojiGroup('人物', <String>[
+        '👶', '🧒', '👦', '👧', '🧑', '👱', '👨', '🧔', '👩', '🧓', '👴', '👵',
+        '🙍', '🙎', '🙅', '🙆', '💁', '🙋', '🧏', '🙇', '🤦', '🤷', '👮', '🕵️',
+        '💂', '🥷', '👷', '🫅', '🤴', '👸', '👳', '👲', '🧕', '🤵', '👰', '🤰',
+        '🫃', '🫄', '🤱', '👼', '🎅', '🤶', '🦸', '🦹', '🧙', '🧚', '🧛', '🧜',
+        '🧝', '🧞', '🧟', '💆', '💇', '🚶', '🧍', '🧎', '🏃', '💃', '🕺', '🕴️',
+        '👯', '🧖', '🧗', '🤺', '🏇', '⛷️', '🏂', '🏌️', '🏄', '🚣', '🏊', '⛹️',
+        '🏋️', '🚴', '🚵', '🤸', '🤼', '🤽', '🤾', '🤹', '🧘',
+      ]),
+      _EmojiGroup('动物', <String>[
+        '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁',
+        '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦',
+        '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝',
+        '🪱', '🐛', '🦋', '🐌', '🐞', '🐜', '🪰', '🪲', '🪳', '🦟', '🦗', '🕷️',
+        '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡',
+        '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧',
+        '🦣', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🦬', '🐃', '🐂', '🐄',
+      ]),
+      _EmojiGroup('食物', <String>[
+        '🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒',
+        '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️',
+        '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖',
+        '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴',
+        '🌭', '🍔', '🍟', '🍕', '🫓', '🥪', '🥙', '🧆', '🌮', '🌯', '🫔', '🥗',
+        '🥘', '🫕', '🥫', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🦪', '🍤',
+        '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧',
+        '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜',
+      ]),
+      _EmojiGroup('活动', <String>[
+        '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓',
+        '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿',
+        '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂',
+        '🏋️', '🤼', '🤸', '⛹️', '🤺', '🤾', '🏌️', '🏇', '🧘', '🏄', '🏊', '🤽',
+        '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️',
+        '🎫', '🎟️', '🎪', '🤹', '🎭', '🩰', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹',
+        '🥁', '🪘', '🎷', '🎺', '🪗', '🎸', '🪕', '🎻', '🎲', '♟️', '🎯', '🎳',
+      ]),
+      _EmojiGroup('旅行', <String>[
+        '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚',
+        '🚛', '🚜', '🦯', '🦽', '🦼', '🛴', '🚲', '🛵', '🏍️', '🛺', '🚨', '🚔',
+        '🚍', '🚘', '🚖', '🚡', '🚠', '🚟', '🚃', '🚋', '🚞', '🚝', '🚄', '🚅',
+        '🚈', '🚂', '🚆', '🚇', '🚊', '🚉', '✈️', '🛫', '🛬', '🛩️', '💺', '🛰️',
+        '🚀', '🛸', '🚁', '🛶', '⛵', '🚤', '🛥️', '🛳️', '⛴️', '🚢', '⚓', '🛟',
+        '🗺️', '🗿', '🗽', '🗼', '🏰', '🏯', '🏟️', '🎡', '🎢', '🎠', '⛲', '⛱️',
+        '🏖️', '🏝️', '🏜️', '🌋', '⛰️', '🏔️', '🗻', '🏕️', '⛺', '🛖', '🏠', '🏡',
+      ]),
+      _EmojiGroup('物品', <String>[
+        '⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🗜️', '💽',
+        '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️',
+        '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️',
+        '⌛', '⏳', '📡', '🔋', '🪫', '🔌', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️',
+        '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰',
+        '🪛', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️',
+        '🧲', '🔫', '💣', '🧨', '🪓', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '🪦',
+        '⚱️', '🏺', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🔬', '🕳️', '🩹', '🩺',
+      ]),
+      _EmojiGroup('符号', <String>[
+        '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕',
+        '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️',
+        '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌',
+        '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️',
+        '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️',
+        '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌',
+        '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱',
+        '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️',
+      ]),
+      _EmojiGroup('旗帜', <String>[
+        '🏳️', '🏴', '🏁', '🚩', '🏳️‍🌈', '🏳️‍⚧️', '🇨🇳', '🇭🇰', '🇲🇴', '🇹🇼', '🇺🇸', '🇬🇧',
+        '🇯🇵', '🇰🇷', '🇸🇬', '🇲🇾', '🇹🇭', '🇻🇳', '🇮🇩', '🇵🇭', '🇮🇳', '🇦🇺', '🇳🇿', '🇨🇦',
+        '🇩🇪', '🇫🇷', '🇮🇹', '🇪🇸', '🇵🇹', '🇳🇱', '🇧🇪', '🇨🇭', '🇦🇹', '🇸🇪', '🇳🇴', '🇩🇰',
+        '🇫🇮', '🇮🇸', '🇮🇪', '🇵🇱', '🇨🇿', '🇭🇺', '🇬🇷', '🇹🇷', '🇷🇺', '🇺🇦', '🇧🇷', '🇦🇷',
+        '🇲🇽', '🇿🇦', '🇪🇬', '🇸🇦', '🇦🇪', '🇮🇱',
+      ]),
+    ];
   }
 
   Widget _buildFileMessage(ChatMessage message) {
@@ -979,21 +1099,119 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
   }
 
   Future<void> _showSharedFolder(String listUrl) async {
+    final first = await _fetchSharedFolder(listUrl);
+    if (!mounted || first == null) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        Map<String, dynamic> folder = first;
+        return SafeArea(
+          child: StatefulBuilder(
+            builder: (context, setSheetState) {
+              final path = folder['path']?.toString() ?? '';
+              final parentUrl = folder['parentUrl']?.toString();
+              final filesValue = folder['files'];
+              final files = filesValue is List
+                  ? filesValue.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList()
+                  : <Map<String, dynamic>>[];
+              return SizedBox(
+                height: MediaQuery.of(context).size.height * 0.72,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(this.context.spacingMedium),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            tooltip: '上级目录',
+                            onPressed: parentUrl == null
+                                ? null
+                                : () async {
+                                    final parent = await _fetchSharedFolder(parentUrl);
+                                    if (parent != null) {
+                                      setSheetState(() {
+                                        folder = parent;
+                                      });
+                                    }
+                                  },
+                            icon: const Icon(Icons.arrow_upward),
+                          ),
+                          Expanded(
+                            child: Text(
+                              path.isEmpty ? '共享文件夹' : path,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: this.context.fontMedium,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: files.isEmpty
+                          ? _buildEmpty('当前文件夹为空')
+                          : ListView.builder(
+                              itemCount: files.length,
+                              itemBuilder: (context, index) {
+                                final item = files[index];
+                                final name = item['name']?.toString() ?? '';
+                                final isDir = item['isDirectory'] == true;
+                                final size = item['size'] is int ? item['size'] as int : 0;
+                                return ListTile(
+                                  leading: Icon(isDir ? Icons.folder_outlined : Icons.insert_drive_file_outlined),
+                                  title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  subtitle: Text(isDir ? '文件夹' : _formatSize(size)),
+                                  trailing: isDir ? const Icon(Icons.chevron_right) : const Icon(Icons.download_outlined),
+                                  onTap: () async {
+                                    if (isDir) {
+                                      final nextUrl = item['listUrl']?.toString() ?? '';
+                                      final next = await _fetchSharedFolder(nextUrl);
+                                      if (next != null) {
+                                        setSheetState(() {
+                                          folder = next;
+                                        });
+                                      }
+                                    } else {
+                                      Navigator.of(context).pop();
+                                      final url = item['url']?.toString() ?? '';
+                                      _downloadUrl(url, name);
+                                    }
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>?> _fetchSharedFolder(String listUrl) async {
+    if (listUrl.isEmpty) {
+      return null;
+    }
     setState(() {
       _loading = true;
     });
-    final files = <Map<String, dynamic>>[];
     try {
       final request = await HttpClient().getUrl(Uri.parse(listUrl));
       final response = await request.close();
       final text = await response.transform(utf8.decoder).join();
       final json = text.isEmpty ? null : jsonDecode(text);
-      if (json is Map && json['files'] is List) {
-        for (final item in json['files'] as List) {
-          if (item is Map) {
-            files.add(Map<String, dynamic>.from(item));
-          }
-        }
+      if (json is Map) {
+        return Map<String, dynamic>.from(json);
       }
     } catch (e) {
       if (mounted) {
@@ -1006,36 +1224,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
         });
       }
     }
-    if (!mounted || files.isEmpty) {
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            children: files.map((item) {
-              final name = item['name']?.toString() ?? '';
-              final isDir = item['isDirectory'] == true;
-              final size = item['size'] is int ? item['size'] as int : 0;
-              return ListTile(
-                leading: Icon(isDir ? Icons.folder_outlined : Icons.insert_drive_file_outlined),
-                title: Text(name),
-                subtitle: Text(isDir ? '文件夹' : _formatSize(size)),
-                onTap: isDir
-                    ? null
-                    : () {
-                        Navigator.of(context).pop();
-                        final url = item['url']?.toString() ?? '';
-                        _downloadUrl(url, name);
-                      },
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
+    return null;
   }
 
   Future<void> _downloadUrl(String url, String name) async {
@@ -1185,4 +1374,11 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     }
     return '$size B';
   }
+}
+
+class _EmojiGroup {
+  final String title;
+  final List<String> emojis;
+
+  const _EmojiGroup(this.title, this.emojis);
 }
