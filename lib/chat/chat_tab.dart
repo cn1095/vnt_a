@@ -595,6 +595,9 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     if (message.type == ChatMessageType.voice && message.extra['url'] == null) {
       return _buildInlineVoiceMessage(message);
     }
+    if (message.type == ChatMessageType.image) {
+      return _buildImageMessage(message);
+    }
     if (message.type == ChatMessageType.file ||
         message.type == ChatMessageType.image ||
         message.type == ChatMessageType.video ||
@@ -609,6 +612,81 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
       style: TextStyle(
         fontSize: context.fontBody,
         color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+      ),
+    );
+  }
+
+  Widget _buildImageMessage(ChatMessage message) {
+    final name = message.extra['name']?.toString() ?? message.content;
+    final url = message.extra['url']?.toString() ?? '';
+    if (url.isEmpty) {
+      return _buildFileMessage(message);
+    }
+    return InkWell(
+      onTap: () => _showImagePreview(name, url),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(context.cardRadius),
+            child: Image.network(
+              url,
+              width: context.w(220),
+              height: context.w(160),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: context.w(220),
+                  height: context.w(120),
+                  alignment: Alignment.center,
+                  color: widget.isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.broken_image_outlined),
+                      SizedBox(height: context.spacingXSmall),
+                      Text(
+                        '图片不可预览',
+                        style: TextStyle(fontSize: context.fontSmall),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) {
+                  return child;
+                }
+                return Container(
+                  width: context.w(220),
+                  height: context.w(120),
+                  alignment: Alignment.center,
+                  color: widget.isDark ? AppTheme.darkSurface : AppTheme.lightSurface,
+                  child: const CircularProgressIndicator(),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: context.spacingXSmall),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: context.fontSmall),
+                ),
+              ),
+              SizedBox(width: context.spacingXSmall),
+              InkWell(
+                onTap: () => _downloadSharedFile(message),
+                child: Icon(Icons.download_outlined, size: context.iconSmall),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1122,7 +1200,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
                 child: Column(
                   children: [
                     Padding(
-                      padding: EdgeInsets.all(this.context.spacingMedium),
+                      padding: EdgeInsets.all(_ChatTabState.this.context.spacingMedium),
                       child: Row(
                         children: [
                           IconButton(
@@ -1145,7 +1223,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: this.context.fontMedium,
+                                fontSize: _ChatTabState.this.context.fontMedium,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -1258,6 +1336,70 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
         });
       }
     }
+  }
+
+  Future<void> _showImagePreview(String name, String url) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          insetPadding: EdgeInsets.all(this.context.spacingMedium),
+          backgroundColor: Colors.black,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4,
+                  child: Center(
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Text(
+                          '图片加载失败',
+                          style: TextStyle(color: Colors.white),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 8,
+                top: 8,
+                right: 8,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '下载',
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _downloadUrl(url, name);
+                      },
+                      icon: const Icon(Icons.download_outlined, color: Colors.white),
+                    ),
+                    IconButton(
+                      tooltip: '关闭',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _sendCallAction(String mode) async {
