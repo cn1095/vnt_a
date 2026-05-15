@@ -1393,6 +1393,16 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
                                   },
                             icon: const Icon(Icons.arrow_upward),
                           ),
+                          IconButton(
+                            tooltip: '下载当前文件夹',
+                            onPressed: files.isEmpty
+                                ? null
+                                : () async {
+                                    Navigator.of(context).pop();
+                                    await _downloadSharedFolderTree(folder);
+                                  },
+                            icon: const Icon(Icons.drive_folder_upload_outlined),
+                          ),
                           Expanded(
                             child: Text(
                               path.isEmpty ? '共享文件夹' : path,
@@ -1481,6 +1491,72 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
     return null;
   }
 
+  Future<void> _downloadSharedFolderTree(Map<String, dynamic> folder) async {
+    final targetDir = await FilePicker.platform.getDirectoryPath();
+    if (targetDir == null || targetDir.isEmpty) {
+      return;
+    }
+    final rootPath = folder['path']?.toString() ?? '';
+    final rootName = rootPath.isEmpty
+        ? 'shared_folder_${DateTime.now().millisecondsSinceEpoch}'
+        : rootPath.split('/').last;
+    final rootDir = Directory('$targetDir${Platform.pathSeparator}${_safeLocalName(rootName)}');
+    setState(() {
+      _loading = true;
+    });
+    var downloaded = 0;
+    try {
+      await rootDir.create(recursive: true);
+      downloaded = await _downloadFolderEntries(folder, rootDir);
+      if (mounted) {
+        showTopToast(context, '文件夹下载完成，共 $downloaded 个文件', isSuccess: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        showTopToast(context, '文件夹下载失败：$e', isSuccess: false);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<int> _downloadFolderEntries(Map<String, dynamic> folder, Directory localDir) async {
+    final filesValue = folder['files'];
+    if (filesValue is! List) {
+      return 0;
+    }
+    var count = 0;
+    for (final itemValue in filesValue) {
+      if (itemValue is! Map) {
+        continue;
+      }
+      final item = Map<String, dynamic>.from(itemValue);
+      final name = _safeLocalName(item['name']?.toString() ?? 'unnamed');
+      if (item['isDirectory'] == true) {
+        final nextUrl = item['listUrl']?.toString() ?? '';
+        final next = await _fetchSharedFolder(nextUrl);
+        if (next != null) {
+          final childDir = Directory('${localDir.path}${Platform.pathSeparator}$name');
+          await childDir.create(recursive: true);
+          count += await _downloadFolderEntries(next, childDir);
+        }
+      } else {
+        final url = item['url']?.toString() ?? '';
+        if (url.isEmpty) {
+          continue;
+        }
+        final file = File('${localDir.path}${Platform.pathSeparator}$name');
+        await _downloadUrlToFile(url, file);
+        count++;
+      }
+    }
+    return count;
+  }
+
   Future<void> _downloadUrl(String url, String name) async {
     if (url.isEmpty) {
       return;
@@ -1493,11 +1569,7 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
       _loading = true;
     });
     try {
-      final request = await HttpClient().getUrl(Uri.parse(url));
-      final response = await request.close();
-      final file = File(savePath);
-      final sink = file.openWrite();
-      await response.pipe(sink);
+      await _downloadUrlToFile(url, File(savePath));
       if (mounted) {
         showTopToast(context, '文件已保存：$savePath', isSuccess: true);
       }
@@ -1512,6 +1584,29 @@ class _ChatTabState extends State<ChatTab> with AutomaticKeepAliveClientMixin {
         });
       }
     }
+  }
+
+  Future<void> _downloadUrlToFile(String url, File file) async {
+    final request = await HttpClient().getUrl(Uri.parse(url));
+    final response = await request.close();
+    await file.parent.create(recursive: true);
+    final sink = file.openWrite();
+    await response.pipe(sink);
+  }
+
+  String _safeLocalName(String name) {
+    final cleaned = name
+        .replaceAll('\\', '_')
+        .replaceAll('/', '_')
+        .replaceAll(':', '_')
+        .replaceAll('*', '_')
+        .replaceAll('?', '_')
+        .replaceAll('"', '_')
+        .replaceAll('<', '_')
+        .replaceAll('>', '_')
+        .replaceAll('|', '_')
+        .trim();
+    return cleaned.isEmpty ? 'unnamed' : cleaned;
   }
 
   Future<void> _showImagePreview(String name, String url) async {
