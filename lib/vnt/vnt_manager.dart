@@ -5,10 +5,12 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
 import 'package:vnt_app/utils/ip_utils.dart';
+import 'package:vnt_app/web_demo_vnt_manager.dart';
 
 /// macOS 权限管理器
 class MacOSPrivilegeManager {

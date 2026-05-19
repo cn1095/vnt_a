@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'network_config.dart';
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'dart:io';
 import 'config_manager.dart';
+import 'web_demo_persistence.dart';
 
 class DataPersistence {
   static const String dataKey = 'data-key';
@@ -22,6 +24,14 @@ class DataPersistence {
   }
 
   Future<void> saveData(List<NetworkConfig> configs) async {
+    // Web Demo 模式
+    if (kIsWeb) {
+      for (var config in configs) {
+        await WebDemoPersistence.saveConfig(config);
+      }
+      return;
+    }
+    
     List<String> jsonDataList =
         configs.map((config) => jsonEncode(config.toJson())).toList();
     
@@ -73,6 +83,11 @@ class DataPersistence {
   }
 
   Future<List<NetworkConfig>> loadData() async {
+    // Web Demo 模式
+    if (kIsWeb) {
+      return await WebDemoPersistence.loadConfigs();
+    }
+    
     List<String>? jsonDataList;
     
     if (Platform.isWindows) {

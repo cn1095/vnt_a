@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/theme/theme_provider.dart';
@@ -1009,22 +1010,24 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       child: Column(
         children: [
-          _buildSettingItem(
-            isDark,
-            icon: Icons.backup_outlined,
-            title: '备份所有配置',
-            subtitle: '将所有配置导出为文件',
-            onTap: _exportAllConfigs,
-          ),
-          _buildDivider(isDark),
-          _buildSettingItem(
-            isDark,
-            icon: Icons.restore,
-            title: '恢复备份数据',
-            subtitle: '从备份文件恢复配置',
-            onTap: _importAllConfigs,
-          ),
-          _buildDivider(isDark),
+          if (!kIsWeb) ...[
+            _buildSettingItem(
+              isDark,
+              icon: Icons.backup_outlined,
+              title: '备份所有配置',
+              subtitle: '将所有配置导出为文件',
+              onTap: _exportAllConfigs,
+            ),
+            _buildDivider(isDark),
+            _buildSettingItem(
+              isDark,
+              icon: Icons.restore,
+              title: '恢复备份数据',
+              subtitle: '从备份文件恢复配置',
+              onTap: _importAllConfigs,
+            ),
+            _buildDivider(isDark),
+          ],
           _buildSettingItem(
             isDark,
             icon: Icons.delete_outline,

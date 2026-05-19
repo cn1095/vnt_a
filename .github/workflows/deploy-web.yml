@@ -1,0 +1,69 @@
+name: Deploy Flutter Web to GitHub Pages
+
+on:
+  push:
+    branches:
+      - flutter
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolup@stable
+        with:
+          toolchain: stable
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Build Flutter Web (Demo Mode)
+        run: flutter build web --release --base-href /vnt_a/ --dart-define=WEB_DEMO=true --web-renderer canvaskit
+      
+      - name: Prepare docs directory
+        run: |
+          # 保留 index.html (landing page)
+          if [ -f docs/index.html ]; then
+            cp docs/index.html /tmp/landing.html
+          fi
+          
+          # 清空并重建
+          rm -rf docs
+          mkdir -p docs
+          
+          # 恢复 landing page
+          if [ -f /tmp/landing.html ]; then
+            cp /tmp/landing.html docs/index.html
+          fi
+          
+          # 复制 Flutter Web 构建产物到 app 子目录
+          cp -r build/web docs/app
+          
+          # 创建 .nojekyll
+          touch docs/.nojekyll
+      
+      - name: Deploy to GitHub Pages
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add docs
+          if git diff --staged --quiet; then
+            echo "No changes to deploy"
+          else
+            git commit -m "🚀 Deploy Flutter Web to GitHub Pages [skip ci]"
+            git push
+          fi

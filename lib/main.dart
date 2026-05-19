@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:isolate';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,6 +19,7 @@ import 'package:vnt_app/utils/log_utils.dart';
 import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/system_tray_manager.dart';
 import 'package:vnt_app/config_manager.dart';
+import 'package:vnt_app/web_demo_config.dart';
 
 final SystemTray systemTray = SystemTray();
 final AppWindow appWindow = AppWindow();
@@ -55,6 +57,13 @@ bool isWindows10OrGreater() {
 }
 
 Future<void> main(List<String> args) async {
+  // Web Demo 模式：跳过所有原生平台初始化
+  if (kIsWeb) {
+    WidgetsFlutterBinding.ensureInitialized();
+    runApp(const VntApp());
+    return;
+  }
+  
   _startHidden = _shouldStartHidden(args);
 
   // macOS 启动时先检查权限，在Flutter初始化之前

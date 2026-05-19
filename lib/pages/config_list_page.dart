@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/theme/color_utils.dart';
 import 'package:vnt_app/network_config.dart';
@@ -239,14 +240,15 @@ class _ConfigListPageState extends State<ConfigListPage> {
           ),
         ),
         SizedBox(width: context.cardSpacing),
-        Expanded(
-          child: _buildSmallActionButton(
-            isDark,
-            Icons.file_download_outlined,
-            '导入配置',
-            _importSingleConfig,
+        if (!kIsWeb) // Web 模式禁用导入
+          Expanded(
+            child: _buildSmallActionButton(
+              isDark,
+              Icons.file_download_outlined,
+              '导入配置',
+              _importSingleConfig,
+            ),
           ),
-        ),
       ],
     );
   }

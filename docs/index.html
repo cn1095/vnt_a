@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VNT GUI - 跨平台虚拟网络工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; overflow-x: hidden; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        
+        /* Hero Section */
+        .hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; position: relative; }
+        .hero h1 { font-size: 4rem; font-weight: 800; margin-bottom: 1rem; animation: fadeInUp 0.8s ease; }
+        .hero p { font-size: 1.5rem; opacity: 0.9; margin-bottom: 2rem; animation: fadeInUp 0.8s ease 0.2s both; }
+        .hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; animation: fadeInUp 0.8s ease 0.4s both; }
+        .btn { padding: 1rem 2.5rem; border-radius: 50px; font-size: 1.1rem; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
+        .btn-primary { background: #fff; color: #667eea; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
+        .btn-secondary { background: rgba(255,255,255,0.2); color: #fff; backdrop-filter: blur(10px); border: 2px solid rgba(255,255,255,0.3); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.3); }
+        
+        /* Features */
+        .features { padding: 5rem 0; background: #fff; color: #333; }
+        .features h2 { text-align: center; font-size: 2.5rem; margin-bottom: 3rem; color: #667eea; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+        .feature-card { padding: 2rem; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 20px; transition: transform 0.3s; }
+        .feature-card:hover { transform: translateY(-10px); }
+        .feature-card h3 { color: #667eea; margin-bottom: 1rem; font-size: 1.5rem; }
+        .feature-icon { font-size: 3rem; margin-bottom: 1rem; }
+        
+        /* Download Section */
+        .download { padding: 5rem 0; background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); }
+        .download h2 { text-align: center; font-size: 2.5rem; margin-bottom: 3rem; }
+        .download-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+        .download-card { padding: 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; text-align: center; border: 2px solid rgba(255,255,255,0.2); transition: all 0.3s; }
+        .download-card:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
+        .download-card h3 { margin-bottom: 1rem; font-size: 1.3rem; }
+        
+        /* Footer */
+        .footer { padding: 2rem 0; text-align: center; background: rgba(0,0,0,0.2); }
+        
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .hero p { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="container">
+            <h1>🚀 VNT GUI</h1>
+            <p>跨平台虚拟网络工具 | 安全 · 快速 · 易用</p>
+            <div class="hero-buttons">
+                <a href="./app/" class="btn btn-primary">🎮 在线体验 Web 版</a>
+                <a href="https://github.com/lmq8267/vnt_a" class="btn btn-secondary">⭐ GitHub</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2>✨ 核心特性</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>跨平台支持</h3>
+                    <p>支持 Android、iOS、Windows、macOS、Linux 全平台</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>高性能</h3>
+                    <p>Rust 核心引擎，低延迟高吞吐量</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>安全加密</h3>
+                    <p>支持多种加密算法，数据指纹验证</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>实时监控</h3>
+                    <p>流量监控、设备管理、延迟统计</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>智能路由</h3>
+                    <p>支持 IP 白名单/黑名单、端口映射</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛠️</div>
+                    <h3>易于配置</h3>
+                    <p>图形化界面，配置导入导出</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="download">
+        <div class="container">
+            <h2>📦 下载应用</h2>
+            <div class="download-grid">
+                <div class="download-card">
+                    <h3>🤖 Android</h3>
+                    <p>APK 安装包</p>
+                </div>
+                <div class="download-card">
+                    <h3>🍎 iOS</h3>
+                    <p>TestFlight</p>
+                </div>
+                <div class="download-card">
+                    <h3>🪟 Windows</h3>
+                    <p>EXE 安装程序</p>
+                </div>
+                <div class="download-card">
+                    <h3>🍏 macOS</h3>
+                    <p>DMG 镜像</p>
+                </div>
+                <div class="download-card">
+                    <h3>🐧 Linux</h3>
+                    <p>AppImage</p>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 2rem; opacity: 0.8;">
+                前往 <a href="https://github.com/lmq8267/vnt_a/releases" style="color: #fff; text-decoration: underline;">GitHub Releases</a> 下载最新版本
+            </p>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>© 2024 VNT GUI | Version 1.2.17 | Built with Flutter & Rust</p>
+        </div>
+    </footer>
+</body>
+</html>
