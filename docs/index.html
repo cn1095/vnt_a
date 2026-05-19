@@ -7,18 +7,33 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; overflow-x: hidden; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
         
         /* Hero Section */
-        .hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; position: relative; }
-        .hero h1 { font-size: 4rem; font-weight: 800; margin-bottom: 1rem; animation: fadeInUp 0.8s ease; }
-        .hero p { font-size: 1.5rem; opacity: 0.9; margin-bottom: 2rem; animation: fadeInUp 0.8s ease 0.2s both; }
-        .hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; animation: fadeInUp 0.8s ease 0.4s both; }
-        .btn { padding: 1rem 2.5rem; border-radius: 50px; font-size: 1.1rem; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
+        .hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0; }
+        .hero-content { display: grid; grid-template-columns: 1fr 1.2fr; gap: 4rem; align-items: center; }
+        .hero-text h1 { font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; animation: fadeInUp 0.8s ease; }
+        .hero-text p { font-size: 1.3rem; opacity: 0.9; margin-bottom: 2rem; animation: fadeInUp 0.8s ease 0.2s both; line-height: 1.6; }
+        .hero-buttons { display: flex; gap: 1rem; flex-wrap: wrap; animation: fadeInUp 0.8s ease 0.4s both; }
+        .btn { padding: 1rem 2rem; border-radius: 50px; font-size: 1rem; font-weight: 600; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; display: inline-block; }
         .btn-primary { background: #fff; color: #667eea; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
         .btn-secondary { background: rgba(255,255,255,0.2); color: #fff; backdrop-filter: blur(10px); border: 2px solid rgba(255,255,255,0.3); }
         .btn-secondary:hover { background: rgba(255,255,255,0.3); }
+        .demo-hint { margin-top: 2rem; font-size: 0.95rem; opacity: 0.85; line-height: 1.8; }
+        
+        /* macOS Window Frame */
+        .mac-window { position: relative; width: 100%; max-width: 900px; margin: 0 auto; animation: fadeInUp 0.8s ease 0.6s both; }
+        .mac-frame { position: relative; background: #2a2a2a; border-radius: 12px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); overflow: hidden; }
+        .mac-titlebar { height: 40px; background: linear-gradient(to bottom, #3a3a3a, #2a2a2a); display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #1a1a1a; }
+        .mac-buttons { display: flex; gap: 8px; }
+        .mac-button { width: 12px; height: 12px; border-radius: 50%; }
+        .mac-button.close { background: #ff5f57; }
+        .mac-button.minimize { background: #ffbd2e; }
+        .mac-button.maximize { background: #28ca42; }
+        .mac-title { flex: 1; text-align: center; font-size: 13px; color: #999; font-weight: 500; }
+        .mac-screen { position: relative; width: 100%; padding-top: 62.5%; background: #fff; overflow: hidden; }
+        .mac-screen iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
         
         /* Features */
         .features { padding: 5rem 0; background: #fff; color: #333; }
@@ -33,7 +48,7 @@
         .download { padding: 5rem 0; background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); }
         .download h2 { text-align: center; font-size: 2.5rem; margin-bottom: 3rem; }
         .download-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
-        .download-card { padding: 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; text-align: center; border: 2px solid rgba(255,255,255,0.2); transition: all 0.3s; }
+        .download-card { padding: 2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; text-align: center; border: 2px solid rgba(255,255,255,0.2); transition: all 0.3s; cursor: pointer; }
         .download-card:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
         .download-card h3 { margin-bottom: 1rem; font-size: 1.3rem; }
         
@@ -42,20 +57,79 @@
         
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         
+        /* 平板适配 */
+        @media (max-width: 1024px) {
+            .hero-content { grid-template-columns: 1fr; gap: 3rem; }
+            .hero-text { text-align: center; }
+            .hero-text h1 { font-size: 2.8rem; }
+            .hero-buttons { justify-content: center; }
+            .mac-window { max-width: 700px; }
+        }
+        
+        /* 移动端适配 */
         @media (max-width: 768px) {
-            .hero h1 { font-size: 2.5rem; }
-            .hero p { font-size: 1.2rem; }
+            .hero { min-height: auto; padding: 3rem 0; }
+            .hero-content { gap: 2rem; }
+            .hero-text h1 { font-size: 2.2rem; }
+            .hero-text p { font-size: 1.1rem; }
+            .demo-hint { font-size: 0.9rem; }
+            .mac-window { max-width: 100%; }
+            .mac-titlebar { height: 32px; }
+            .mac-button { width: 10px; height: 10px; }
+            .mac-title { font-size: 11px; }
+            .features { padding: 3rem 0; }
+            .features h2 { font-size: 2rem; }
+            .download { padding: 3rem 0; }
+            .download h2 { font-size: 2rem; }
+        }
+        
+        /* 小屏手机适配 */
+        @media (max-width: 480px) {
+            .hero-text h1 { font-size: 1.8rem; }
+            .hero-text p { font-size: 1rem; }
+            .btn { padding: 0.8rem 1.5rem; font-size: 0.9rem; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .download-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
     <section class="hero">
         <div class="container">
-            <h1>🚀 VNT GUI</h1>
-            <p>跨平台虚拟网络工具 | 安全 · 快速 · 易用</p>
-            <div class="hero-buttons">
-                <a href="./app/" class="btn btn-primary">🎮 在线体验 Web 版</a>
-                <a href="https://github.com/lmq8267/vnt_a" class="btn btn-secondary">⭐ GitHub</a>
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>🚀 VNT GUI</h1>
+                    <p>跨平台虚拟网络工具<br>安全 · 快速 · 易用</p>
+                    <div class="hero-buttons">
+                        <a href="https://github.com/lmq8267/vnt_a/releases" class="btn btn-primary">📦 下载应用</a>
+                        <a href="https://github.com/lmq8267/vnt_a" class="btn btn-secondary">⭐ GitHub</a>
+                    </div>
+                    <div class="demo-hint">
+                        💡 <strong>在线 Demo</strong><br>
+                        右侧可以真实操作完整应用<br>
+                        • 新建/编辑配置<br>
+                        • 模拟连接 VPN<br>
+                        • 查看实时仪表盘<br>
+                        • 管理设备列表
+                    </div>
+                </div>
+                
+                <div class="mac-window">
+                    <div class="mac-frame">
+                        <div class="mac-titlebar">
+                            <div class="mac-buttons">
+                                <div class="mac-button close"></div>
+                                <div class="mac-button minimize"></div>
+                                <div class="mac-button maximize"></div>
+                            </div>
+                            <div class="mac-title">VNT GUI - Demo</div>
+                            <div style="width: 52px;"></div>
+                        </div>
+                        <div class="mac-screen">
+                            <iframe src="./app/" title="VNT GUI Demo" loading="lazy"></iframe>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
