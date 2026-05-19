@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/network_config.dart';
@@ -10,6 +11,8 @@ import 'package:vnt_app/utils/toast_utils.dart';
 import 'package:vnt_app/utils/responsive_utils.dart';
 import 'package:json2yaml/json2yaml.dart';
 import 'package:vnt_app/system_tray_manager.dart';
+import 'package:vnt_app/web_demo_vnt_manager.dart';
+import 'package:vnt_app/web_demo_config.dart';
 
 /// 房间页面 - 显示已连接网络的设备列表、聊天、路由
 class RoomPage extends StatefulWidget {
@@ -70,6 +73,23 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
   void _updateDevices() {
     if (!mounted) return;
 
+    // Web Demo 模式
+    if (kIsWeb && WebDemoVntManager.isConnected) {
+      final mockDevices = DemoModeConfig.getMockDevices();
+      final currentDevice = WebDemoVntManager.getCurrentDevice();
+      
+      // 由于 RustPeerClientInfo 是 Rust 生成的类型，Web 模式下我们需要特殊处理
+      // 这里我们直接使用 mock 数据更新 UI 状态
+      // 注意：_devices 列表在 Web 模式下会是空的，但我们会在 UI 中直接使用 mock 数据
+      
+      setState(() {
+        _currentIp = currentDevice['virtualIp'] as String?;
+        // _devices 保持为空，UI 层会检查 kIsWeb 并使用 mock 数据
+      });
+      return;
+    }
+
+    // 原生模式
     final allVnts = vntManager.map;
     List<RustPeerClientInfo> devices = [];
     String? currentIp;
@@ -112,7 +132,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
     final isWideScreen = screenWidth > 600;
-    final hasConnection = vntManager.size() > 0;
+    final hasConnection = kIsWeb ? WebDemoVntManager.isConnected : vntManager.size() > 0;
     final primaryColor = Theme.of(context).primaryColor;
 
     return Scaffold(
@@ -277,7 +297,56 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
   // 设备Tab
   Widget _buildDevicesTab(bool isDark, bool isWideScreen) {
     final primaryColor = Theme.of(context).primaryColor;
-    // 分离在线和离线设备
+    
+    // Web Demo 模式：使用模拟数据
+    if (kIsWeb && WebDemoVntManager.isConnected) {
+      final mockDevices = DemoModeConfig.getMockDevices();
+      final onlineDevices = mockDevices.where((d) => d['status'] == 'online').toList();
+      final offlineDevices = mockDevices.where((d) => d['status'] == 'offline').toList();
+      
+      return RefreshIndicator(
+        onRefresh: () async => _updateDevices(),
+        color: primaryColor,
+        child: ListView(
+          padding: EdgeInsets.all(isWideScreen ? context.spacingXLarge : context.spacingMedium),
+          children: [
+            // 在线设备分组
+            if (onlineDevices.isNotEmpty)
+              _buildWebDeviceGroup(
+                title: '在线设备',
+                count: onlineDevices.length,
+                devices: onlineDevices,
+                isExpanded: _onlineDevicesExpanded,
+                onToggle: () {
+                  setState(() {
+                    _onlineDevicesExpanded = !_onlineDevicesExpanded;
+                  });
+                },
+                isDark: isDark,
+              ),
+
+            // 离线设备分组
+            if (offlineDevices.isNotEmpty) ...[
+              if (onlineDevices.isNotEmpty) SizedBox(height: context.spacingMedium),
+              _buildWebDeviceGroup(
+                title: '离线设备',
+                count: offlineDevices.length,
+                devices: offlineDevices,
+                isExpanded: _offlineDevicesExpanded,
+                onToggle: () {
+                  setState(() {
+                    _offlineDevicesExpanded = !_offlineDevicesExpanded;
+                  });
+                },
+                isDark: isDark,
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+    
+    // 原生模式：使用真实设备数据
     final onlineDevices = _devices.where((device) => _isDeviceOnline(device.status)).toList();
     final offlineDevices = _devices.where((device) => !_isDeviceOnline(device.status)).toList();
 
@@ -2151,4 +2220,209 @@ class _LatencyChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// Web Demo 设备组构建方法（在 RoomPageState 类外部）
+extension WebDeviceGroupBuilder on _RoomPageState {
+  Widget _buildWebDeviceGroup({
+    required String title,
+    required int count,
+    required List<Map<String, dynamic>> devices,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+    required bool isDark,
+  }) {
+    final primaryColor = Theme.of(context).primaryColor;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 分组标题栏
+        InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(context.spacingXSmall),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: context.spacingSmall,
+              vertical: context.spacingSmall,
+            ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(context.spacingXSmall),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isExpanded ? Icons.expand_more : Icons.chevron_right,
+                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  size: context.iconMedium,
+                ),
+                SizedBox(width: context.spacingXSmall),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: context.fontMedium,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  ),
+                ),
+                SizedBox(width: context.spacingXSmall),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.spacingXSmall,
+                    vertical: context.spacingXXSmall,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(context.cardRadius),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: context.fontSmall,
+                      fontWeight: FontWeight.w600,
+                      color: primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // 设备列表
+        if (isExpanded) ...[
+          SizedBox(height: context.cardSpacing),
+          ...devices.map((device) => Padding(
+            padding: EdgeInsets.only(bottom: context.cardSpacing),
+            child: _buildWebDeviceCard(device, isDark),
+          )),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildWebDeviceCard(Map<String, dynamic> device, bool isDark) {
+    final isOnline = device['status'] == 'online';
+    final primaryColor = Theme.of(context).primaryColor;
+    
+    return InkWell(
+      onTap: () => _showWebDeviceDetails(device),
+      borderRadius: BorderRadius.circular(context.cardRadius),
+      child: Container(
+        padding: EdgeInsets.all(context.spacingMedium),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+          borderRadius: BorderRadius.circular(context.cardRadius),
+          border: Border.all(
+            color: isOnline 
+                ? primaryColor.withOpacity(0.3)
+                : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            // 状态指示器
+            Container(
+              width: context.w(12),
+              height: context.w(12),
+              decoration: BoxDecoration(
+                color: isOnline ? AppTheme.successColor : AppTheme.errorColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            SizedBox(width: context.spacingMedium),
+            
+            // 设备信息
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    device['name'] as String,
+                    style: TextStyle(
+                      fontSize: context.fontMedium,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                    ),
+                  ),
+                  SizedBox(height: context.spacingXXSmall),
+                  Text(
+                    device['ip'] as String,
+                    style: TextStyle(
+                      fontSize: context.fontSmall,
+                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // 延迟显示
+            if (isOnline)
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.spacingSmall,
+                  vertical: context.spacingXXSmall,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.successColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(context.cardRadius),
+                ),
+                child: Text(
+                  '${device['latency']}ms',
+                  style: TextStyle(
+                    fontSize: context.fontSmall,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.successColor,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showWebDeviceDetails(Map<String, dynamic> device) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(device['name'] as String),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetailRow('IP地址', device['ip'] as String),
+            _buildDetailRow('状态', device['status'] == 'online' ? '在线' : '离线'),
+            if (device['status'] == 'online') ...[
+              _buildDetailRow('延迟', '${device['latency']}ms'),
+              _buildDetailRow('NAT类型', device['natType'] as String),
+              _buildDetailRow('上传', device['upStream'] as String),
+              _buildDetailRow('下载', device['downStream'] as String),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(value),
+        ],
+      ),
+    );
+  }
 }

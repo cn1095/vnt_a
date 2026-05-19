@@ -23,16 +23,11 @@ jobs:
           flutter-version: '3.24.5'
           channel: 'stable'
       
-      - name: Setup Rust
-        uses: dtolnay/rust-toolup@stable
-        with:
-          toolchain: stable
-      
       - name: Install dependencies
         run: flutter pub get
       
       - name: Build Flutter Web (Demo Mode)
-        run: flutter build web --release --base-href /vnt_a/ --dart-define=WEB_DEMO=true --web-renderer canvaskit
+        run: flutter build web --release --base-href /vnt_a/ --web-renderer canvaskit
       
       - name: Prepare docs directory
         run: |

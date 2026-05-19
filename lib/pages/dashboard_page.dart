@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:vnt_app/theme/app_theme.dart';
 import 'package:vnt_app/vnt/vnt_manager.dart';
@@ -10,6 +11,8 @@ import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/utils/toast_utils.dart';
 import 'package:vnt_app/utils/responsive_utils.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:vnt_app/web_demo_vnt_manager.dart';
+import 'package:vnt_app/web_demo_config.dart';
 
 /// 仪表盘页面
 class DashboardPage extends StatefulWidget {
@@ -293,91 +296,170 @@ class _DashboardPageState extends State<DashboardPage> {
     double maxUpSpeed = _maxUpSpeed;
     double maxDownSpeed = _maxDownSpeed;
 
-    final allVnts = vntManager.map;
-
-    for (var entry in allVnts.entries) {
-      final vntBox = entry.value;
-      if (!vntBox.isClosed()) {
-        final devices = vntBox.peerDeviceList();
-        deviceCount += devices.length;
-
-        // 计算离线设备数
-        for (var device in devices) {
-          if (device.status != 'Online') {
-            offlineDeviceCount++;
-          }
+    // Web Demo 模式
+    if (kIsWeb && WebDemoVntManager.isConnected) {
+      final devices = DemoModeConfig.getMockDevices();
+      deviceCount = devices.length;
+      offlineDeviceCount = devices.where((d) => d['status'] == 'offline').length;
+      
+      // 获取流量
+      final uploadBytes = DemoModeConfig.uploadBytes;
+      final downloadBytes = DemoModeConfig.downloadBytes;
+      upStream = _formatBytes(uploadBytes.toDouble());
+      downStream = _formatBytes(downloadBytes.toDouble());
+      
+      // 计算速率
+      if (!_isFirstUpdate) {
+        double upSpeed = (uploadBytes - _lastUpBytes) / 2.0;
+        double downSpeed = (downloadBytes - _lastDownBytes) / 2.0;
+        
+        if (upSpeed < 0) upSpeed = 0;
+        if (downSpeed < 0) downSpeed = 0;
+        
+        _uploadSpeedHistory.add(upSpeed);
+        _downloadSpeedHistory.add(downSpeed);
+        
+        if (_uploadSpeedHistory.length > 100) _uploadSpeedHistory.removeAt(0);
+        if (_downloadSpeedHistory.length > 100) _downloadSpeedHistory.removeAt(0);
+        
+        currentUpSpeed = _formatSpeed(upSpeed);
+        currentDownSpeed = _formatSpeed(downSpeed);
+        
+        if (upSpeed > _peakUpSpeed) _peakUpSpeed = upSpeed;
+        if (downSpeed > _peakDownSpeed) _peakDownSpeed = downSpeed;
+        
+        _totalUpSpeed += upSpeed;
+        _totalDownSpeed += downSpeed;
+        _speedSampleCount++;
+        
+        _avgUpSpeed = _totalUpSpeed / _speedSampleCount;
+        _avgDownSpeed = _totalDownSpeed / _speedSampleCount;
+        
+        if (_uploadSpeedHistory.isNotEmpty) {
+          maxUpSpeed = _uploadSpeedHistory.reduce((a, b) => a > b ? a : b);
         }
-
-        // 获取总流量（直接使用API返回的字符串）
-        upStream = vntBox.upStream();
-        downStream = vntBox.downStream();
-
-        // 解析流量字符串为字节数（用于计算速率）
-        double currentUpBytes = _parseTrafficToBytes(upStream);
-        double currentDownBytes = _parseTrafficToBytes(downStream);
-
-        // 计算速率（当前流量 - 上次流量）/ 时间间隔
-        // 时间间隔是2秒（定时器周期）
-        if (!_isFirstUpdate) {
-          double upSpeed = (currentUpBytes - _lastUpBytes) / 2.0;  // 字节/秒
-          double downSpeed = (currentDownBytes - _lastDownBytes) / 2.0;
-
-          // 如果速率为负（可能是重启或重置），设为0
-          if (upSpeed < 0) upSpeed = 0;
-          if (downSpeed < 0) downSpeed = 0;
-
-          // 添加到历史记录（保持最近100个数据点）
-          _uploadSpeedHistory.add(upSpeed);
-          _downloadSpeedHistory.add(downSpeed);
-
-          if (_uploadSpeedHistory.length > 100) {
-            _uploadSpeedHistory.removeAt(0);
-          }
-          if (_downloadSpeedHistory.length > 100) {
-            _downloadSpeedHistory.removeAt(0);
-          }
-
-          // 更新当前速率显示
-          currentUpSpeed = _formatSpeed(upSpeed);
-          currentDownSpeed = _formatSpeed(downSpeed);
-
-          // 更新峰值速度
-          if (upSpeed > _peakUpSpeed) {
-            _peakUpSpeed = upSpeed;
-          }
-          if (downSpeed > _peakDownSpeed) {
-            _peakDownSpeed = downSpeed;
-          }
-
-          // 累计速度用于计算平均值
-          _totalUpSpeed += upSpeed;
-          _totalDownSpeed += downSpeed;
-          _speedSampleCount++;
-
-          // 计算平均速度
-          _avgUpSpeed = _totalUpSpeed / _speedSampleCount;
-          _avgDownSpeed = _totalDownSpeed / _speedSampleCount;
-
-          // 计算最大速率（用于图表Y轴）
-          if (_uploadSpeedHistory.isNotEmpty) {
-            maxUpSpeed = _uploadSpeedHistory.reduce((a, b) => a > b ? a : b);
-          }
-          if (_downloadSpeedHistory.isNotEmpty) {
-            maxDownSpeed = _downloadSpeedHistory.reduce((a, b) => a > b ? a : b);
-          }
-        } else {
-          _isFirstUpdate = false;
+        if (_downloadSpeedHistory.isNotEmpty) {
+          maxDownSpeed = _downloadSpeedHistory.reduce((a, b) => a > b ? a : b);
         }
+      } else {
+        _isFirstUpdate = false;
+      }
+      
+      _lastUpBytes = uploadBytes.toDouble();
+      _lastDownBytes = downloadBytes.toDouble();
+      
+      // 获取配置信息
+      final config = WebDemoVntManager.currentConfig;
+      if (config != null) {
+        configName = config.configName;
+        isEncrypted = config.groupPassword.isNotEmpty;
+        encryptionAlgorithm = config.encryptionAlgorithm;
+        protocol = config.protocol;
+        deviceName = config.deviceName;
+        relayServer = config.serverAddress;
+      }
+      
+      // 获取当前设备信息
+      final currentDevice = DemoModeConfig.getCurrentDeviceInfo(
+        config?.virtualIPv4 ?? '10.26.0.1'
+      );
+      virtualIp = currentDevice['virtualIp'] ?? '';
+      natType = currentDevice['natType'] ?? '';
+      
+      // 计算平均延迟
+      for (var device in devices) {
+        if (device['status'] == 'online') {
+          totalLatency += device['latency'] as int;
+          latencyCount++;
+        }
+      }
+    } else {
+      // 原生模式
+      final allVnts = vntManager.map;
 
-        // 保存当前流量值，用于下次计算速率
-        _lastUpBytes = currentUpBytes;
-        _lastDownBytes = currentDownBytes;
+      for (var entry in allVnts.entries) {
+        final vntBox = entry.value;
+        if (!vntBox.isClosed()) {
+          final devices = vntBox.peerDeviceList();
+          deviceCount += devices.length;
 
-        // 获取配置名
-        final config = vntBox.getNetConfig();
-        if (config != null) {
-          configName = config.configName;
-          isEncrypted = config.groupPassword.isNotEmpty;
+          // 计算离线设备数
+          for (var device in devices) {
+            if (device.status != 'Online') {
+              offlineDeviceCount++;
+            }
+          }
+
+          // 获取总流量（直接使用API返回的字符串）
+          upStream = vntBox.upStream();
+          downStream = vntBox.downStream();
+
+          // 解析流量字符串为字节数（用于计算速率）
+          double currentUpBytes = _parseTrafficToBytes(upStream);
+          double currentDownBytes = _parseTrafficToBytes(downStream);
+
+          // 计算速率（当前流量 - 上次流量）/ 时间间隔
+          // 时间间隔是2秒（定时器周期）
+          if (!_isFirstUpdate) {
+            double upSpeed = (currentUpBytes - _lastUpBytes) / 2.0;  // 字节/秒
+            double downSpeed = (currentDownBytes - _lastDownBytes) / 2.0;
+
+            // 如果速率为负（可能是重启或重置），设为0
+            if (upSpeed < 0) upSpeed = 0;
+            if (downSpeed < 0) downSpeed = 0;
+
+            // 添加到历史记录（保持最近100个数据点）
+            _uploadSpeedHistory.add(upSpeed);
+            _downloadSpeedHistory.add(downSpeed);
+
+            if (_uploadSpeedHistory.length > 100) {
+              _uploadSpeedHistory.removeAt(0);
+            }
+            if (_downloadSpeedHistory.length > 100) {
+              _downloadSpeedHistory.removeAt(0);
+            }
+
+            // 更新当前速率显示
+            currentUpSpeed = _formatSpeed(upSpeed);
+            currentDownSpeed = _formatSpeed(downSpeed);
+
+            // 更新峰值速度
+            if (upSpeed > _peakUpSpeed) {
+              _peakUpSpeed = upSpeed;
+            }
+            if (downSpeed > _peakDownSpeed) {
+              _peakDownSpeed = downSpeed;
+            }
+
+            // 累计速度用于计算平均值
+            _totalUpSpeed += upSpeed;
+            _totalDownSpeed += downSpeed;
+            _speedSampleCount++;
+
+            // 计算平均速度
+            _avgUpSpeed = _totalUpSpeed / _speedSampleCount;
+            _avgDownSpeed = _totalDownSpeed / _speedSampleCount;
+
+            // 计算最大速率（用于图表Y轴）
+            if (_uploadSpeedHistory.isNotEmpty) {
+              maxUpSpeed = _uploadSpeedHistory.reduce((a, b) => a > b ? a : b);
+            }
+            if (_downloadSpeedHistory.isNotEmpty) {
+              maxDownSpeed = _downloadSpeedHistory.reduce((a, b) => a > b ? a : b);
+            }
+          } else {
+            _isFirstUpdate = false;
+          }
+
+          // 保存当前流量值，用于下次计算速率
+          _lastUpBytes = currentUpBytes;
+          _lastDownBytes = currentDownBytes;
+
+          // 获取配置名
+          final config = vntBox.getNetConfig();
+          if (config != null) {
+            configName = config.configName;
+            isEncrypted = config.groupPassword.isNotEmpty;
 
           // 获取加密算法
           if (isEncrypted) {
