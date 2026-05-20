@@ -1,23 +1,20 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'package:vnt_app/utils/platform_utils.dart';
 import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
 import 'package:vnt_app/utils/ip_utils.dart';
-import 'package:vnt_app/web_demo_vnt_manager.dart';
 
 /// macOS 权限管理器
 class MacOSPrivilegeManager {
   /// 检查当前进程是否有 root 权限
   static Future<bool> hasRootPrivilege() async {
-    if (!PlatformUtils.isMacOS) return true;
+    if (!Platform.isMacOS) return true;
 
     try {
       // 尝试执行一个需要 root 权限���命令来检测
@@ -32,11 +29,11 @@ class MacOSPrivilegeManager {
   /// 使用 osascript 以管理员权限重新启动 app
   /// [showPrompt] 是否显示友好的提示信息
   static Future<bool> restartWithPrivilege({bool showPrompt = false}) async {
-    if (!PlatformUtils.isMacOS) return false;
+    if (!Platform.isMacOS) return false;
 
     try {
       // 获取当前 app 的路径
-      final executablePath = PlatformUtils.resolvedExecutable;
+      final executablePath = Platform.resolvedExecutable;
       // 获取 .app bundle 的路径
       // 例如：/Applications/vnt_app.app/Contents/MacOS/vnt_app
       // 需要提取到：/Applications/vnt_app.app
@@ -97,7 +94,7 @@ end tell
   /// 返回 true 表示需要重启（已经开始重启流程）
   /// 返回 false 表示不需要重启（已有权限或不是 macOS）
   static Future<bool> checkAndRequestPrivilegeOnStartup() async {
-    if (!PlatformUtils.isMacOS) return false;
+    if (!Platform.isMacOS) return false;
 
     final hasPrivilege = await hasRootPrivilege();
     if (hasPrivilege) {
@@ -112,7 +109,7 @@ end tell
   /// 返回 true 表示需要重启（已经开始重启流程）
   /// 返回 false 表示不需要重启（已有权限或不是 macOS）
   static Future<bool> checkAndRequestPrivilege() async {
-    if (!PlatformUtils.isMacOS) return false;
+    if (!Platform.isMacOS) return false;
 
     final hasPrivilege = await hasRootPrivilege();
     if (hasPrivilege) {
@@ -206,7 +203,7 @@ class VntBox {
 
   Future<void> close() async {
     vntApi.stop();
-    if (PlatformUtils.isAndroid) {
+    if (Platform.isAndroid) {
       await VntAppCall.stopVpn();
     }
   }
@@ -298,7 +295,7 @@ class VntManager {
       connecting = true;
 
       // macOS 权限检查：如果没有权限，请求重新启动
-      if (PlatformUtils.isMacOS) {
+      if (Platform.isMacOS) {
         final needsRestart = await MacOSPrivilegeManager.checkAndRequestPrivilege();
         if (needsRestart) {
           // 已经开始重启流程，抛出异常通知 UI
@@ -328,7 +325,7 @@ class VntManager {
       await vnt.close();
     }
     // 更新磁贴和小组件状态
-    if (PlatformUtils.isAndroid) {
+    if (Platform.isAndroid) {
       VntAppCall.updateWidgetAndTile(hasConnection());
     }
   }
@@ -339,7 +336,7 @@ class VntManager {
     }
     map.clear();
     // 更新磁贴和小组件状态
-    if (PlatformUtils.isAndroid) {
+    if (Platform.isAndroid) {
       VntAppCall.updateWidgetAndTile(false);
     }
   }
@@ -367,7 +364,7 @@ class VntManager {
   }
 
   bool supportMultiple() {
-    return !PlatformUtils.isAndroid;
+    return !Platform.isAndroid;
   }
 
   VntBox? getOne() {
@@ -472,7 +469,7 @@ class VntAppCall {
   /// 更新磁贴和小组件状态（仅 iOS/Android）
   /// @param isConnected 是否已连接
   static Future<void> updateWidgetAndTile(bool isConnected) async {
-    if (!PlatformUtils.isIOS && !PlatformUtils.isAndroid) return;
+    if (!Platform.isIOS && !Platform.isAndroid) return;
     try {
       await VntAppCall.channel.invokeMethod('updateWidgetAndTile', {
         'isConnected': isConnected,

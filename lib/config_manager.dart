@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:vnt_app/utils/platform_utils.dart';
 import 'package:path/path.dart' as path;
 
 /// Windows 平台使用程序目录下的 config.json
@@ -21,8 +20,8 @@ class ConfigManager {
   Future<void> init() async {
     if (_initialized) return; // 防止重复初始化
     
-    if (PlatformUtils.isWindows) {
-      final exePath = PlatformUtils.resolvedExecutable;
+    if (Platform.isWindows) {
+      final exePath = Platform.resolvedExecutable;
       final exeDir = path.dirname(exePath);
       final configDir = Directory(path.join(exeDir, 'config'));
       

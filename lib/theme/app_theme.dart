@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:vnt_app/utils/platform_utils.dart';
 import 'package:flutter/material.dart';
 import 'color_utils.dart';
 import '../utils/responsive_utils.dart';
@@ -46,7 +45,7 @@ class AppTheme {
       scaffoldBackgroundColor: lightBackground,
       cardColor: lightCardBackground,
       dividerColor: lightDivider,
-      fontFamily: PlatformUtils.isWindows ? 'Microsoft YaHei' : null,
+      fontFamily: Platform.isWindows ? 'Microsoft YaHei' : null,
       appBarTheme: AppBarTheme(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
@@ -164,7 +163,7 @@ class AppTheme {
       scaffoldBackgroundColor: darkBackground,
       cardColor: darkCardBackground,
       dividerColor: darkDivider,
-      fontFamily: PlatformUtils.isWindows ? 'Microsoft YaHei' : null,
+      fontFamily: Platform.isWindows ? 'Microsoft YaHei' : null,
       appBarTheme: const AppBarTheme(
         backgroundColor: darkSurface,
         foregroundColor: darkTextPrimary,

@@ -1,6 +1,5 @@
 import 'package:flutter/services.dart';
 import 'dart:io';
-import 'package:vnt_app/utils/platform_utils.dart';
 
 /// iOS VPN服务
 /// 通过Method Channel与iOS Network Extension通信
@@ -8,7 +7,7 @@ class IOSVPNService {
   static const platform = MethodChannel('top.wherewego.vntApp/vpn');
   
   /// 检查是否为iOS平台
-  static bool get isIOS => PlatformUtils.isIOS;
+  static bool get isIOS => Platform.isIOS;
   
   /// 启动VPN连接
   /// 

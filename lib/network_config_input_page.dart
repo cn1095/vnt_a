@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'data_persistence.dart';
 import 'network_config.dart';
 import 'dart:io';
-import 'package:vnt_app/utils/platform_utils.dart';
 import 'widgets/custom_tooltip_text_field.dart';
 import 'utils/ip_utils.dart';
 import 'utils/toast_utils.dart';
@@ -24,7 +23,7 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
   final _groupNumberController = TextEditingController();
   final _deviceNameController = TextEditingController(
       text: () {
-        String version = PlatformUtils.operatingSystemVersion.replaceAll('"', '').trim();
+        String version = Platform.operatingSystemVersion.replaceAll('"', '').trim();
         return version.length > 64 ? version.substring(0, 64) : version;
       }());
   final _virtualIPv4Controller = TextEditingController();
@@ -268,7 +267,7 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // 设置状态栏颜色以适配当前主题
-    if (PlatformUtils.isAndroid || PlatformUtils.isIOS) {
+    if (Platform.isAndroid || Platform.isIOS) {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,

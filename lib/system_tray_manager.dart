@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:vnt_app/utils/platform_utils.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:vnt_app/data_persistence.dart';
@@ -33,10 +32,10 @@ class SystemTrayManager {
   }
 
   Future<void> showMainWindow() async {
-    if (!PlatformUtils.isWindows && !PlatformUtils.isMacOS && !PlatformUtils.isLinux) {
+    if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
       return;
     }
-    if (PlatformUtils.isWindows || PlatformUtils.isLinux) {
+    if (Platform.isWindows || Platform.isLinux) {
       await windowManager.setSkipTaskbar(false);
     }
     await windowManager.show();
@@ -47,7 +46,7 @@ class SystemTrayManager {
   /// [optimisticState] 乐观更新的连接状态，如果为null则使用实际状态
   Future<void> updateMenu({bool? optimisticState}) async {
     // 只在桌面平台执行
-    if (!PlatformUtils.isWindows && !PlatformUtils.isMacOS && !PlatformUtils.isLinux) {
+    if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
       return;
     }
 
@@ -160,7 +159,7 @@ class SystemTrayManager {
   /// [optimisticState] 乐观更新的连接状态，如果为null则使用实际状态
   Future<void> updateTooltip({bool? optimisticState}) async {
     // 只在桌面平台执行
-    if (!PlatformUtils.isWindows && !PlatformUtils.isMacOS && !PlatformUtils.isLinux) {
+    if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
       return;
     }
 
@@ -182,7 +181,7 @@ class SystemTrayManager {
 
     await systemTray.setToolTip(tooltip);
     // Linux 上 setToolTip 会重置图标，需要重新设置
-    if (PlatformUtils.isLinux) {
+    if (Platform.isLinux) {
       try {
         await systemTray.setImage('/tmp/vnt_app_icon.png');
       } catch (e) {

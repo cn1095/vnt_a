@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'network_config.dart';
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'dart:io';
-import 'package:vnt_app/utils/platform_utils.dart';
 import 'config_manager.dart';
-import 'web_demo_persistence.dart';
 
 class DataPersistence {
   static const String dataKey = 'data-key';
@@ -17,7 +14,7 @@ class DataPersistence {
   ConfigManager? _configManager;
 
   Future<ConfigManager> _getConfigManager() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       _configManager ??= ConfigManager();
       return _configManager!;
     }
@@ -25,18 +22,10 @@ class DataPersistence {
   }
 
   Future<void> saveData(List<NetworkConfig> configs) async {
-    // Web Demo 模式
-    if (kIsWeb) {
-      for (var config in configs) {
-        await WebDemoPersistence.saveConfig(config);
-      }
-      return;
-    }
-    
     List<String> jsonDataList =
         configs.map((config) => jsonEncode(config.toJson())).toList();
     
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.setStringList(dataKey, jsonDataList);
       await configManager.setString(dataKeyForNative, jsonEncode(jsonDataList));
@@ -84,14 +73,9 @@ class DataPersistence {
   }
 
   Future<List<NetworkConfig>> loadData() async {
-    // Web Demo 模式
-    if (kIsWeb) {
-      return await WebDemoPersistence.loadConfigs();
-    }
-    
     List<String>? jsonDataList;
     
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       jsonDataList = configManager.getStringList(dataKey);
     } else {
@@ -111,7 +95,7 @@ class DataPersistence {
   Future<String> loadUniqueId() async {
     String? uniqueId;
     
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       uniqueId = configManager.getString(vntUniqueIdKey);
       if (uniqueId == null || uniqueId.isEmpty) {
@@ -131,7 +115,7 @@ class DataPersistence {
   }
 
   Future<Size?> loadWindowSize() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       final width = configManager.getDouble('window-width');
       final height = configManager.getDouble('window-height');
@@ -153,7 +137,7 @@ class DataPersistence {
     if (size.width == 600 && size.height == 700) {
       return;
     }
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.setDouble('window-width', size.width);
       await configManager.setDouble('window-height', size.height);
@@ -165,7 +149,7 @@ class DataPersistence {
   }
 
   Future<Offset?> loadWindowPosition() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       final x = configManager.getDouble('window-x');
       final y = configManager.getDouble('window-y');
@@ -184,7 +168,7 @@ class DataPersistence {
   }
 
   Future<void> saveWindowPosition(Offset position) async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.setDouble('window-x', position.dx);
       await configManager.setDouble('window-y', position.dy);
@@ -196,7 +180,7 @@ class DataPersistence {
   }
 
   Future<bool?> loadCloseApp() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       final result = configManager.getBool('is-close-app');
       debugPrint('Windows loadCloseApp: $result');
@@ -210,7 +194,7 @@ class DataPersistence {
   }
 
   Future<void> saveCloseApp(bool? isClose) async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       if (isClose == null) {
         await configManager.remove('is-close-app');
@@ -228,7 +212,7 @@ class DataPersistence {
   }
 
   Future<bool> loadAlwaysOnTop() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       return configManager.getBool('is-always-on-top') ?? false;
     } else {
@@ -238,7 +222,7 @@ class DataPersistence {
   }
 
   Future<void> saveAlwaysOnTop(bool alwaysOnTop) async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.setBool('is-always-on-top', alwaysOnTop);
     } else {
@@ -248,7 +232,7 @@ class DataPersistence {
   }
 
   Future<bool?> loadAutoStart() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       return configManager.getBool('is-auto-start');
     } else {
@@ -258,7 +242,7 @@ class DataPersistence {
   }
 
   Future<void> saveAutoStart(bool autoStart) async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.setBool('is-auto-start', autoStart);
     } else {
@@ -268,7 +252,7 @@ class DataPersistence {
   }
 
   Future<bool?> loadAutoConnect() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       return configManager.getBool('is-auto-connect');
     } else {
@@ -278,7 +262,7 @@ class DataPersistence {
   }
 
   Future<void> saveAutoConnect(bool autoConnect) async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.setBool('is-auto-connect', autoConnect);
     } else {
@@ -288,7 +272,7 @@ class DataPersistence {
   }
 
   Future<String?> loadDefaultKey() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       return configManager.getString('default-key');
     } else {
@@ -298,7 +282,7 @@ class DataPersistence {
   }
 
   Future<void> saveDefaultKey(String defaultKey) async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.setString('default-key', defaultKey);
     } else {
@@ -308,7 +292,7 @@ class DataPersistence {
   }
 
   Future<void> clear() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.clear();
     } else {
@@ -318,7 +302,7 @@ class DataPersistence {
   }
 
   Future<ThemeMode?> loadThemeMode() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       final index = configManager.getInt('theme-mode');
       if (index != null && index >= 0 && index < ThemeMode.values.length) {
@@ -335,7 +319,7 @@ class DataPersistence {
   }
 
   Future<void> saveThemeMode(ThemeMode mode) async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.setInt('theme-mode', mode.index);
     } else {
@@ -345,7 +329,7 @@ class DataPersistence {
   }
 
   Future<void> saveCustomThemeColor(Color color) async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       await configManager.setInt('custom-theme-color', color.value);
     } else {
@@ -355,7 +339,7 @@ class DataPersistence {
   }
 
   Future<Color?> loadCustomThemeColor() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final configManager = await _getConfigManager();
       final colorValue = configManager.getInt('custom-theme-color');
       if (colorValue != null) {
@@ -382,7 +366,7 @@ class DataPersistence {
       };
       
       // Windows平台额外导出窗口和系统配置
-      if (PlatformUtils.isWindows) {
+      if (Platform.isWindows) {
         final windowSize = await loadWindowSize();
         final windowPosition = await loadWindowPosition();
         final themeMode = await loadThemeMode();
@@ -440,7 +424,7 @@ class DataPersistence {
       await saveData(configs);
       
       // Windows平台恢复窗口和系统配置
-      if (PlatformUtils.isWindows && jsonData.containsKey('windows_settings')) {
+      if (Platform.isWindows && jsonData.containsKey('windows_settings')) {
         final winSettings = jsonData['windows_settings'] as Map<String, dynamic>;
         
         if (winSettings.containsKey('window_size')) {
@@ -540,15 +524,15 @@ class DataPersistence {
 
   /// 获取持久化配置文件路径（用于日志打印）
   Future<String> getConfigFilePath() async {
-    if (PlatformUtils.isWindows) {
+    if (Platform.isWindows) {
       final manager = await _getConfigManager();
       return manager.configFilePath;
-    } else if (PlatformUtils.isAndroid || PlatformUtils.isIOS) {
+    } else if (Platform.isAndroid || Platform.isIOS) {
       // Android/iOS 使用 SharedPreferences，返回说明性路径
       return 'SharedPreferences (${Platform.operatingSystem})';
     } else {
       // Linux/macOS 使用 SharedPreferences，显示实际路径
-      final home = PlatformUtils.environment['HOME'] ?? '';
+      final home = Platform.environment['HOME'] ?? '';
       return 'SharedPreferences ($home/.local/share/top.wherewego.vnt_app/)';
     }
   }

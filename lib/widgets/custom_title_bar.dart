@@ -1,15 +1,14 @@
 import 'dart:io';
-import 'package:vnt_app/utils/platform_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:vnt_app/theme/app_theme.dart';
 
 /// 检测是否是 Windows 10 或更高版本
 bool _isWindows10OrGreater() {
-  if (!PlatformUtils.isWindows) return false;
+  if (!Platform.isWindows) return false;
 
   try {
-    final version = PlatformUtils.operatingSystemVersion;
+    final version = Platform.operatingSystemVersion;
     final match = RegExp(r'(\d+)\.(\d+)').firstMatch(version);
     if (match != null) {
       final major = int.parse(match.group(1)!);
@@ -51,14 +50,14 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
   @override
   void onWindowMaximize() {
     // Linux 下不使用回调，避免和强制状态冲突导致闪烁
-    if (PlatformUtils.isLinux) return;
+    if (Platform.isLinux) return;
     setState(() => _isMaximized = true);
   }
 
   @override
   void onWindowUnmaximize() {
     // Linux 下不使用回调，避免和强制状态冲突导致闪烁
-    if (PlatformUtils.isLinux) return;
+    if (Platform.isLinux) return;
     setState(() => _isMaximized = false);
   }
 
@@ -76,16 +75,16 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
   @override
   Widget build(BuildContext context) {
     // macOS 使用系统原生标题栏和三色按钮，不显示自定义标题栏
-    if (PlatformUtils.isMacOS) {
+    if (Platform.isMacOS) {
       return const SizedBox.shrink();
     }
 
     // Windows 7 使用系统标题栏，不显示自定义标题栏
-    if (PlatformUtils.isWindows && !_isWindows10OrGreater()) {
+    if (Platform.isWindows && !_isWindows10OrGreater()) {
       return const SizedBox.shrink();
     }
 
-    if (!PlatformUtils.isWindows && !PlatformUtils.isLinux) {
+    if (!Platform.isWindows && !Platform.isLinux) {
       return const SizedBox.shrink();
     }
 
@@ -170,7 +169,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
               if (_isMaximized) {
                 await windowManager.unmaximize();
                 // Linux 下强制更新状态
-                if (PlatformUtils.isLinux) {
+                if (Platform.isLinux) {
                   setState(() => _isMaximized = false);
                   // 延迟刷新窗口，消除重影和黑条
                   Future.delayed(const Duration(milliseconds: 100), () async {
@@ -183,12 +182,12 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
               } else {
                 await windowManager.maximize();
                 // Linux 下强制更新状态
-                if (PlatformUtils.isLinux) {
+                if (Platform.isLinux) {
                   setState(() => _isMaximized = true);
                 }
               }
               // 其他平台检查状态
-              if (!PlatformUtils.isLinux) {
+              if (!Platform.isLinux) {
                 _checkWindowState();
               }
             },
