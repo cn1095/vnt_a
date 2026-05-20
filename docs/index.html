@@ -65,7 +65,9 @@
     .section { max-width: 1200px; margin: 0 auto; padding: 80px 24px; }
     .section-label { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); margin-bottom: 12px; }
     .section-title { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 700; letter-spacing: -0.01em; margin-bottom: 48px; }
-    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    @media (max-width: 700px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .features-grid { grid-template-columns: 1fr; } }
     .feature { background: var(--bg); padding: 28px; transition: background 0.2s; display: flex; flex-direction: column; }
     .feature:hover { background: var(--bg-soft); }
     .feature-icon { font-size: 1.8rem; margin-bottom: 14px; }
