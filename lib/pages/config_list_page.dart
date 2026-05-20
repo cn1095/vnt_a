@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:vnt_app/utils/platform_utils.dart';
+import 'package:vnt_app/web_demo_vnt_manager.dart';
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:ui' show lerpDouble;
@@ -738,6 +739,18 @@ class _ConfigListPageState extends State<ConfigListPage> {
     // iOS使用VPN连接
     if (PlatformUtils.isIOS) {
       await _connectViaIOSVPN(config);
+      return;
+    }
+
+    // Web 平台：模拟连接（不支持真实 VPN）
+    if (PlatformUtils.isWeb) {
+      _showConnectingDialog(config);
+      await WebDemoVntManager.connect(config);
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        widget.onConfigSelected?.call(config);
+        setState(() {});
+      }
       return;
     }
     

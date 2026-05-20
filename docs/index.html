@@ -23,7 +23,7 @@
         .demo-hint { margin-top: 2rem; font-size: 0.95rem; opacity: 0.85; line-height: 1.8; }
         
         /* Windows 12 Window Frame */
-        .win-window { position: relative; width: 100%; max-width: 900px; margin: 0 auto; animation: fadeInUp 0.8s ease 0.6s both; }
+        .win-window { position: relative; width: 100%; max-width: 1100px; margin: 0 auto; animation: fadeInUp 0.8s ease 0.6s both; }
         .win-frame { background: #fff; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.12); overflow: hidden; }
         .win-titlebar { height: 32px; background: #f3f3f3; display: flex; align-items: center; padding: 0 0 0 12px; user-select: none; }
         .win-icon { width: 16px; height: 16px; margin-right: 6px; flex-shrink: 0; }
@@ -33,8 +33,11 @@
         .win-btn:hover { background: rgba(0,0,0,0.08); }
         .win-btn.close:hover { background: #c42b1c; color: #fff; }
         .win-btn svg { width: 10px; height: 10px; }
-        .win-screen { position: relative; width: 100%; padding-top: 62.5%; background: #fff; overflow: hidden; }
+        .win-screen { position: relative; width: 100%; padding-top: 65%; background: #1a1a2e; overflow: hidden; }
         .win-screen iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        .win-loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: rgba(255,255,255,0.8); font-size: 14px; pointer-events: none; }
+        .win-loading-spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
         /* Features */
         .features { padding: 5rem 0; background: #fff; color: #333; }
@@ -64,7 +67,7 @@
             .hero-text { text-align: center; }
             .hero-text h1 { font-size: 2.8rem; }
             .hero-buttons { justify-content: center; }
-            .win-window { max-width: 700px; }
+            .win-window { max-width: 100%; }
         }
         
         /* 移动端适配 */
@@ -126,7 +129,11 @@
                             </div>
                         </div>
                         <div class="win-screen">
-                            <iframe src="./app/" title="VNT APP" loading="lazy"></iframe>
+                            <div class="win-loading" id="demo-loading">
+                                <div class="win-loading-spinner"></div>
+                                <span>正在加载 Demo，首次加载约需 10~30 秒...</span>
+                            </div>
+                            <iframe src="./app/" title="VNT APP" onload="document.getElementById('demo-loading').style.display='none'"></iframe>
                         </div>
                     </div>
                 </div>

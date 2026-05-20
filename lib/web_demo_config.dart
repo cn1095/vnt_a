@@ -1,10 +1,12 @@
 // Web Demo Mode - 模拟VPN连接，无需真实后端
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 const bool kIsWebDemo = kIsWeb;
 
 class DemoModeConfig {
+  static final _rng = Random();
   static bool get isEnabled => kIsWebDemo;
   
   // 模拟连接延迟
@@ -40,25 +42,25 @@ class DemoModeConfig {
         'name': 'Device-001',
         'ip': '10.26.0.2',
         'virtualIp': '10.26.0.2',
-        'latency': 15 + (DateTime.now().second % 10),
+        'latency': 15 + _rng.nextInt(10),
         'status': 'online',
         'natType': 'Symmetric',
         'publicIps': ['203.0.113.1:12345'],
         'localIpv4': '192.168.1.100',
-        'upStream': '${(DateTime.now().second % 100) + 50} KB',
-        'downStream': '${(DateTime.now().second % 200) + 100} KB',
+        'upStream': '${_rng.nextInt(100) + 50} KB',
+        'downStream': '${_rng.nextInt(200) + 100} KB',
       },
       {
         'name': 'Device-002',
         'ip': '10.26.0.3',
         'virtualIp': '10.26.0.3',
-        'latency': 23 + (DateTime.now().second % 15),
+        'latency': 23 + _rng.nextInt(15),
         'status': 'online',
         'natType': 'FullCone',
         'publicIps': ['203.0.113.2:54321'],
         'localIpv4': '192.168.1.101',
-        'upStream': '${(DateTime.now().second % 80) + 30} KB',
-        'downStream': '${(DateTime.now().second % 150) + 80} KB',
+        'upStream': '${_rng.nextInt(80) + 30} KB',
+        'downStream': '${_rng.nextInt(150) + 80} KB',
       },
       {
         'name': 'Device-003',
@@ -76,13 +78,13 @@ class DemoModeConfig {
         'name': 'Device-004',
         'ip': '10.26.0.5',
         'virtualIp': '10.26.0.5',
-        'latency': 12 + (DateTime.now().second % 8),
+        'latency': 12 + _rng.nextInt(8),
         'status': 'online',
         'natType': 'Restricted',
         'publicIps': ['203.0.113.3:33333'],
         'localIpv4': '192.168.1.102',
-        'upStream': '${(DateTime.now().second % 120) + 60} KB',
-        'downStream': '${(DateTime.now().second % 250) + 150} KB',
+        'upStream': '${_rng.nextInt(120) + 60} KB',
+        'downStream': '${_rng.nextInt(250) + 150} KB',
       },
     ];
   }
@@ -114,8 +116,8 @@ class DemoModeConfig {
     _lastUpdate = now;
     
     // 模拟随机流量：上传 10-100 KB/s，下载 50-500 KB/s
-    final uploadSpeed = 10000 + (DateTime.now().millisecond % 90) * 1000;
-    final downloadSpeed = 50000 + (DateTime.now().millisecond % 450) * 1000;
+    final uploadSpeed = 10000 + _rng.nextInt(90) * 1000;
+    final downloadSpeed = 50000 + _rng.nextInt(450) * 1000;
     
     _uploadBytes += (uploadSpeed * elapsed).toInt();
     _downloadBytes += (downloadSpeed * elapsed).toInt();

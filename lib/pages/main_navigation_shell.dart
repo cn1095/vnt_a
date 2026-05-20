@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:vnt_app/utils/platform_utils.dart';
+import 'package:vnt_app/web_demo_vnt_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vnt_app/theme/app_theme.dart';
@@ -120,6 +121,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   /// 直接连接到指定配置（不跳转页面）
   Future<void> _connectToConfigDirectly(NetworkConfig config) async {
+    // Web 平台：模拟连接
+    if (PlatformUtils.isWeb) {
+      await WebDemoVntManager.connect(config);
+      setState(() => _selectedConfig = config);
+      if (mounted) showTopToast(context, '[${config.configName}] 连接成功 (Demo)', isSuccess: true);
+      return;
+    }
     if (vntManager.hasConnectionItem(config.itemKey)) {
       if (mounted) {
         showTopToast(context, '[${config.configName}] 已连接', isSuccess: true);
