@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:vnt_app/utils/platform_utils.dart';
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:ui' show lerpDouble;
@@ -735,7 +736,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
   // 连接VNT
   Future<void> _connectVnt(NetworkConfig config) async {
     // iOS使用VPN连接
-    if (Platform.isIOS) {
+    if (PlatformUtils.isIOS) {
       await _connectViaIOSVPN(config);
       return;
     }
@@ -767,7 +768,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
             setState(() {});
             widget.onConfigSelected?.call(config);
             // 更新 Android 磁贴和小组件
-            if (Platform.isAndroid) {
+            if (PlatformUtils.isAndroid) {
               VntAppCall.updateWidgetAndTile(true);
             }
             // 更新系统托盘
@@ -787,7 +788,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
           showTopToast(context, '[$configName] 服务已停止', isSuccess: false);
           setState(() {});
           // 更新 Android 磁贴和小组件
-          if (Platform.isAndroid) {
+          if (PlatformUtils.isAndroid) {
             VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
           }
           // 更新系统托盘
@@ -813,7 +814,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
         }
         _handleConnectionError(msg, configName, itemKey);
         // 更新 Android 磁贴和小组件
-        if (Platform.isAndroid) {
+        if (PlatformUtils.isAndroid) {
           VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
         }
         // 更新系统托盘
@@ -827,7 +828,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
         //   vntManager.remove(itemKey);
         //   showTopToast(context, '[$configName] 连接超时 ${msg.address}', isSuccess: false);
         //   // 更新 Android 磁贴和小组件
-        //   if (Platform.isAndroid) {
+        //   if (PlatformUtils.isAndroid) {
         //     VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
         //   }
         //   // 更新系统托盘
@@ -1014,7 +1015,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
   // 导出单个配置
   Future<void> _exportSingleConfig(NetworkConfig config) async {
     try {
-      if (Platform.isAndroid) {
+      if (PlatformUtils.isAndroid) {
         final directory = await getTemporaryDirectory();
         final fileName = '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
         final filePath = '${directory.path}/$fileName';
@@ -1045,7 +1046,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
             showTopToast(context, '导出已取消', isSuccess: false);
           }
         }
-      } else if (Platform.isIOS) {
+      } else if (PlatformUtils.isIOS) {
         // iOS使用Share Sheet分享文件
         final tempDir = await getTemporaryDirectory();
         final fileName = '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
@@ -1301,7 +1302,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                         }
 
                         // 更新 Android 磁贴和小组件
-                        if (Platform.isAndroid) {
+                        if (PlatformUtils.isAndroid) {
                           VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
                         }
 

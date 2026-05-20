@@ -35,7 +35,7 @@ jobs:
           else
             BASE_HREF="/${REPO_NAME}/app/"
           fi
-          flutter build web --release --base-href "$BASE_HREF"
+          flutter build web --release --base-href "$BASE_HREF" --web-renderer canvaskit
       
       - name: Prepare docs directory
         run: |

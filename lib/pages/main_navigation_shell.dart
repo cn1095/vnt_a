@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:vnt_app/utils/platform_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:vnt_app/theme/app_theme.dart';
@@ -59,7 +60,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
     // 检查是否从磁贴启动（仅 Android）
     bool isTileStart = false;
-    if (Platform.isAndroid) {
+    if (PlatformUtils.isAndroid) {
       try {
         isTileStart = await VntAppCall.isTileStart();
       } catch (e) {
@@ -77,7 +78,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     String? targetKey;
 
     // 如果是从磁贴启动，先检查是否有磁贴配置key（长按磁贴选择的配置）
-    if (isTileStart && Platform.isAndroid) {
+    if (isTileStart && PlatformUtils.isAndroid) {
       try {
         targetKey = await VntAppCall.getTileConfigKey();
         if (targetKey != null && targetKey.isNotEmpty) {
@@ -134,7 +135,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     }
 
     // iOS使用VPN连接
-    if (Platform.isIOS) {
+    if (PlatformUtils.isIOS) {
       await _connectViaIOSVPN(config);
       return;
     }
@@ -220,7 +221,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             });
             showTopToast(context, '[${config.configName}] 连接成功', isSuccess: true);
             // 连接成功，更新磁贴和小组件状态
-            if (Platform.isAndroid) {
+            if (PlatformUtils.isAndroid) {
               VntAppCall.updateWidgetAndTile(true);
             }
             // 更新系统托盘
@@ -239,7 +240,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           // 统一显示"服务已停止"提示
           showTopToast(context, '[${config.configName}] 服务已停止', isSuccess: false);
           // 服务停止，更新磁贴和小组件状态
-          if (Platform.isAndroid) {
+          if (PlatformUtils.isAndroid) {
             VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
           }
           // 更新系统托盘
@@ -265,7 +266,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         }
         _handleConnectionError(msg, config.configName);
         // 连接错误，更新磁贴和小组件状态
-        if (Platform.isAndroid) {
+        if (PlatformUtils.isAndroid) {
           VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
         }
         // 更新系统托盘
@@ -279,7 +280,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         //   vntManager.remove(config.itemKey);
         //   showTopToast(context, '[${config.configName}] 连接超时 ${msg.address}', isSuccess: false);
         //   // 连接超时，更新磁贴和小组件状态
-        //   if (Platform.isAndroid) {
+        //   if (PlatformUtils.isAndroid) {
         //     VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
         //   }
         //   // 更新系统托盘
@@ -393,7 +394,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final isMediumScreen = screenWidth > 600 && screenWidth <= 800;
 
     // 设置状态栏颜色以适配当前主题（仅移动端）
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (PlatformUtils.isAndroid || PlatformUtils.isIOS) {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
@@ -408,7 +409,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       body: Column(
         children: [
           // 自定义标题栏（桌面平台）
-          if (Platform.isWindows || Platform.isMacOS || Platform.isLinux)
+          if (PlatformUtils.isWindows || PlatformUtils.isMacOS || PlatformUtils.isLinux)
             const CustomTitleBar(),
 
           // 主内容区域
@@ -749,7 +750,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             }
 
             // 更新 Android 磁贴和小组件
-            if (Platform.isAndroid) {
+            if (PlatformUtils.isAndroid) {
               VntAppCall.updateWidgetAndTile(false);
             }
 

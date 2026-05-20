@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:vnt_app/utils/platform_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
@@ -2129,7 +2130,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                         _clearLatencyHistory();
 
                         // 更新 Android 磁贴、小组件和通知栏
-                        if (Platform.isAndroid) {
+                        if (PlatformUtils.isAndroid) {
                           VntAppCall.updateWidgetAndTile(false);
                         }
 
