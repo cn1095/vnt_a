@@ -27,7 +27,15 @@ jobs:
         run: flutter pub get
       
       - name: Build Flutter Web (Demo Mode)
-        run: flutter build web --release --base-href ./app/ --web-renderer canvaskit
+        run: |
+          REPO_NAME="${{ github.event.repository.name }}"
+          OWNER="${{ github.repository_owner }}"
+          if [ "$REPO_NAME" = "${OWNER}.github.io" ]; then
+            BASE_HREF="/app/"
+          else
+            BASE_HREF="/${REPO_NAME}/app/"
+          fi
+          flutter build web --release --base-href "$BASE_HREF" --web-renderer canvaskit
       
       - name: Prepare docs directory
         run: |
