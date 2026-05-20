@@ -179,7 +179,7 @@ class _DashboardPageState extends State<DashboardPage> {
   String _deviceConnectionLabel(RustPeerClientInfo device, RustRoute? route) {
     if (_isGatewayIp(device.virtualIp)) return '服务器';
     if (_isDeviceOnline(device.status) && _hasPasswordMismatch(device)) return '参数不匹配';
-    if (route == null || route.rt <= 0 || route.rt >= 9999) return '未连通';
+    if (route == null || route.rt.toInt() <= 0 || route.rt.toInt() >= 9999) return '未连通';
     return _formatRouteLabel(route.natTraversalType);
   }
 
@@ -491,8 +491,8 @@ class _DashboardPageState extends State<DashboardPage> {
         // 计算平均延迟
         for (var device in devices) {
           final route = vntBox.route(device.virtualIp);
-          if (route != null && route.rt > 0 && route.rt < 9999) {
-            totalLatency += route.rt;
+          if (route != null && route.rt.toInt() > 0 && route.rt.toInt() < 9999) {
+            totalLatency += route.rt.toInt();
             latencyCount++;
           }
         }
@@ -504,14 +504,14 @@ class _DashboardPageState extends State<DashboardPage> {
           bool shouldRecord = true;
 
           // route.rt > 0 且 < 9999 表示连通，0 或 9999 表示不通
-          if (gatewayRoute != null && gatewayRoute.rt > 0 && gatewayRoute.rt < 9999) {
+          if (gatewayRoute != null && gatewayRoute.rt.toInt() > 0 && gatewayRoute.rt.toInt() < 9999) {
             isConnected = true;
             // 使用网关的延迟作为平均延迟（如果没有其他设备）
             if (latencyCount == 0) {
-              totalLatency = gatewayRoute.rt;
+              totalLatency = gatewayRoute.rt.toInt();
               latencyCount = 1;
             }
-          } else if (gatewayRoute != null && (gatewayRoute.rt == 0 || gatewayRoute.rt == 9999)) {
+          } else if (gatewayRoute != null && (gatewayRoute.rt.toInt() == 0 || gatewayRoute.rt.toInt() == 9999)) {
             // 前10次出现0或9999时不纳入统计（连接初始化阶段）
             if (_connectivityCheckCount < 10) {
               shouldRecord = false;
@@ -2065,6 +2065,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // 格式化流量显示
+  String _formatBytes(double bytes) => _formatTraffic(bytes);
+
   String _formatTraffic(double bytes) {
     if (bytes < 1024) {
       return '${bytes.toStringAsFixed(0)} B';
@@ -4298,8 +4300,8 @@ class _DashboardPageState extends State<DashboardPage> {
           int rtValue = 0;
           p2pRelay = _deviceConnectionLabel(device, route);
           if (route != null) {
-            rtValue = route.rt;
-            rt = route.rt > 0 && route.rt < 9999 ? '${route.rt}ms' : '--';
+            rtValue = route.rt.toInt();
+            rt = route.rt.toInt() > 0 && route.rt.toInt() < 9999 ? '${route.rt.toInt()}ms' : '--';
           }
 
           // 获取NAT类型信息

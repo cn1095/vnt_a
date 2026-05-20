@@ -103,11 +103,11 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
         // 更新延迟历史数据
         for (var device in devices) {
           final route = vntBox.route(device.virtualIp);
-          if (route != null && route.rt > 0 && route.rt < 9999) {
+          if (route != null && route.rt.toInt() > 0 && route.rt.toInt() < 9999) {
             if (!_latencyHistory.containsKey(device.virtualIp)) {
               _latencyHistory[device.virtualIp] = [];
             }
-            _latencyHistory[device.virtualIp]!.add(route.rt);
+            _latencyHistory[device.virtualIp]!.add(route.rt.toInt());
 
             // 保持历史数据长度不超过最大值
             if (_latencyHistory[device.virtualIp]!.length > _maxHistoryLength) {
@@ -627,13 +627,13 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
   String _deviceConnectionLabel(RustPeerClientInfo device, RustRoute? route) {
     if (_isGatewayIp(device.virtualIp)) return '服务器';
     if (_isDeviceOnline(device.status) && _hasPasswordMismatch(device)) return '参数不匹配';
-    if (route == null || route.rt <= 0 || route.rt >= 9999) return '未连通';
+    if (route == null || route.rt.toInt() <= 0 || route.rt.toInt() >= 9999) return '未连通';
     return _formatRouteLabel(route.natTraversalType);
   }
 
   String _routeConnectionLabel(String destination, RustRoute route) {
     if (_isGatewayIp(destination)) return '服务器';
-    if (route.rt <= 0 || route.rt >= 9999) return '未连通';
+    if (route.rt.toInt() <= 0 || route.rt.toInt() >= 9999) return '未连通';
     return _formatRouteLabel(route.natTraversalType);
   }
 
@@ -694,7 +694,7 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
         final route = vntBox.route(device.virtualIp);
         p2pRelay = _deviceConnectionLabel(device, route);
         if (route != null) {
-          rt = route.rt;
+          rt = route.rt.toInt();
         }
 
         // 获取NAT信息
@@ -1078,11 +1078,11 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${route.rt}',
+                        '${route.rt.toInt()}',
                         style: TextStyle(
                           fontSize: context.fontMedium,
                           fontWeight: FontWeight.w600,
-                          color: _getLatencyColor(route.rt),
+                          color: _getLatencyColor(route.rt.toInt()),
                         ),
                       ),
                     ],
@@ -1298,8 +1298,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
 
         // 获取当前延迟
         final route = vntBox.route(device.virtualIp);
-        if (route != null && route.rt > 0 && route.rt < 9999) {
-          currentRt = route.rt;
+        if (route != null && route.rt.toInt() > 0 && route.rt.toInt() < 9999) {
+          currentRt = route.rt.toInt();
         }
 
         break;
