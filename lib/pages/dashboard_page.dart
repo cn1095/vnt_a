@@ -36,6 +36,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   Timer? _timer;
+  StreamSubscription? _webDemoSub;
   int _connectionCount = 0;
   int _deviceCount = 0;
   String _totalUpStream = '0B';
@@ -115,17 +116,20 @@ class _DashboardPageState extends State<DashboardPage> {
     super.initState();
     _loadDefaultConfig();
     _updateStats();
-    // 每2秒更新一次数据
     _timer = Timer.periodic(const Duration(seconds: 2), (_) {
       _updateStats();
-      // 定期检查默认配置是否有变化
       _checkDefaultConfigChange();
     });
+    // Web 模式：监听连接状态变化，立即刷新
+    if (kIsWeb) {
+      _webDemoSub = WebDemoVntManager.statusStream.listen((_) => _updateStats());
+    }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _webDemoSub?.cancel();
     super.dispose();
   }
 

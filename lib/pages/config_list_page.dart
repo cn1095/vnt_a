@@ -1319,21 +1319,14 @@ class _ConfigListPageState extends State<ConfigListPage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         Navigator.pop(context);
-
-                        // 执行断开连接
+                        if (kIsWeb) {
+                          await WebDemoVntManager.disconnect();
+                          if (mounted) setState(() {});
+                          return;
+                        }
                         await vntManager.remove(config.itemKey);
-
-                        // 更新状态
-                        if (mounted) {
-                          setState(() {});
-                        }
-
-                        // 更新 Android 磁贴和小组件
-                        if (PlatformUtils.isAndroid) {
-                          VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
-                        }
-
-                        // 更新系统托盘
+                        if (mounted) setState(() {});
+                        if (PlatformUtils.isAndroid) VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
                         SystemTrayManager().updateMenu();
                         SystemTrayManager().updateTooltip();
                       },

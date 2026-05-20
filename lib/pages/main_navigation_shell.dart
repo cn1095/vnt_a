@@ -745,24 +745,17 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           onNavigateToConfig: () => setState(() => _selectedIndex = 2),
           onNavigateToSettings: () => setState(() => _selectedIndex = 3),
           onDisconnect: () async {
-            // 获取所有连接的key
+            if (PlatformUtils.isWeb) {
+              await WebDemoVntManager.disconnect();
+              if (mounted) setState(() => _selectedConfig = null);
+              return;
+            }
             final keys = vntManager.map.keys.toList();
-
-            // 断开所有连接
             for (var key in keys) {
               await vntManager.remove(key);
             }
-
-            if (mounted) {
-              setState(() => _selectedConfig = null);
-            }
-
-            // 更新 Android 磁贴和小组件
-            if (PlatformUtils.isAndroid) {
-              VntAppCall.updateWidgetAndTile(false);
-            }
-
-            // 更新系统托盘
+            if (mounted) setState(() => _selectedConfig = null);
+            if (PlatformUtils.isAndroid) VntAppCall.updateWidgetAndTile(false);
             await SystemTrayManager().updateMenu();
             await SystemTrayManager().updateTooltip();
           },

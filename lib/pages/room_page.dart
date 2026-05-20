@@ -2129,12 +2129,14 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
                     child: ElevatedButton(
                       onPressed: () async {
                         Navigator.pop(context);
-
-                        // 获取所有连接的key
+                        if (kIsWeb) {
+                          await WebDemoVntManager.disconnect();
+                          _clearLatencyHistory();
+                          if (widget.onDisconnect != null) widget.onDisconnect!();
+                          return;
+                        }
                         final allVnts = vntManager.map;
                         final keys = allVnts.keys.toList();
-
-                        // 断开所有连接
                         for (var key in keys) {
                           await vntManager.remove(key);
                         }
