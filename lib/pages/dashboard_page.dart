@@ -575,6 +575,7 @@ class _DashboardPageState extends State<DashboardPage> {
       _lastDownBytes = _lastDownBytes;
     });
   }
+  }
 
   // 解析流量字符串为字节数
   // 支持多单位组合格式，例如 "1 GB 500 MB 200 KB 100 bytes"
