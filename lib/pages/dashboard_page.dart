@@ -116,7 +116,7 @@ class _DashboardPageState extends State<DashboardPage> {
     super.initState();
     _loadDefaultConfig();
     _updateStats();
-    _timer = Timer.periodic(const Duration(seconds: 2), (_) {
+    _timer = Timer.periodic(kIsWeb ? const Duration(seconds: 1) : const Duration(seconds: 2), (_) {
       _updateStats();
       _checkDefaultConfigChange();
     });

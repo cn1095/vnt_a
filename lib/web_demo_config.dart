@@ -10,7 +10,7 @@ class DemoModeConfig {
   static bool get isEnabled => kIsWebDemo;
   
   // 模拟连接延迟
-  static const Duration connectDelay = Duration(milliseconds: 1500);
+  static const Duration connectDelay = Duration(milliseconds: 800);
   
   // 当前连接的配置
   static String? _connectedConfigKey;

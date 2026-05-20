@@ -737,7 +737,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
 
   // 切换连接状态
   Future<void> _toggleConnection(NetworkConfig config) async {
-    final isConnected = vntManager.hasConnectionItem(config.itemKey);
+    final isConnected = kIsWeb
+        ? (WebDemoVntManager.isConnected && WebDemoVntManager.currentConfig?.itemKey == config.itemKey)
+        : vntManager.hasConnectionItem(config.itemKey);
 
     if (isConnected) {
       // 断开连接 - 显示确认弹窗
@@ -761,7 +763,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
       _showConnectingDialog(config);
       await WebDemoVntManager.connect(config);
       if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        if (Navigator.of(context).canPop()) Navigator.of(context).pop();
         widget.onConfigSelected?.call(config);
         setState(() {});
       }
