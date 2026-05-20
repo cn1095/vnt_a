@@ -22,11 +22,6 @@ jobs:
         with:
           # flutter-version: '3.24.5'
           channel: 'stable'
-      
-      - name: Install Rust
-        run: |
-          rustup toolchain install 1.77.2
-          rustup default 1.77.2
 
       - name: Install dependencies
         run: flutter pub get
@@ -40,7 +35,7 @@ jobs:
           else
             BASE_HREF="/${REPO_NAME}/app/"
           fi
-          flutter build web --release --base-href "$BASE_HREF" --web-renderer canvaskit
+          flutter build web --release --base-href "$BASE_HREF"
       
       - name: Prepare docs directory
         run: |
