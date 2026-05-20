@@ -29,12 +29,14 @@ class ConfigListPage extends StatefulWidget {
   final Function(NetworkConfig)? onConfigSelected;
   final Function(VoidCallback)? onRefreshCallback;
   final VoidCallback? onDataChanged;
+  final VoidCallback? onDisconnect;
 
   const ConfigListPage({
     super.key,
     this.onConfigSelected,
     this.onRefreshCallback,
     this.onDataChanged,
+    this.onDisconnect,
   });
 
   @override
@@ -1323,6 +1325,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                         Navigator.pop(context);
                         if (kIsWeb) {
                           await WebDemoVntManager.disconnect();
+                          widget.onDisconnect?.call();
                           if (mounted) setState(() {});
                           return;
                         }

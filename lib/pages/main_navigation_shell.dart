@@ -39,6 +39,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   NetworkConfig? _selectedConfig;
   VoidCallback? _refreshConfigList;
   VoidCallback? _refreshSettings;
+  int _connectionVersion = 0; // 连接版本号，每次连接/断开时递增，用于通知 DashboardPage 更新
 
   // 导航项配置
   static const List<_NavItem> _navItems = [
@@ -124,7 +125,10 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     // Web 平台：模拟连接
     if (PlatformUtils.isWeb) {
       await WebDemoVntManager.connect(config);
-      setState(() => _selectedConfig = config);
+      setState(() {
+        _selectedConfig = config;
+        _connectionVersion++;
+      });
       if (mounted) showTopToast(context, '[${config.configName}] 连接成功 (Demo)', isSuccess: true);
       return;
     }
@@ -744,10 +748,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         DashboardPage(
           onNavigateToConfig: () => setState(() => _selectedIndex = 2),
           onNavigateToSettings: () => setState(() => _selectedIndex = 3),
+          connectionVersion: _connectionVersion,
           onDisconnect: () async {
             if (PlatformUtils.isWeb) {
               await WebDemoVntManager.disconnect();
-              if (mounted) setState(() => _selectedConfig = null);
+              if (mounted) setState(() { _selectedConfig = null; _connectionVersion++; });
               return;
             }
             final keys = vntManager.map.keys.toList();
@@ -796,6 +801,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             setState(() {
               _selectedConfig = config;
               _selectedIndex = 1; // 跳转到房间页面
+              _connectionVersion++;
             });
           },
           onRefreshCallback: (callback) {
@@ -804,6 +810,12 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           onDataChanged: () {
             // 当配置数据改变时，刷新设置页面
             _refreshSettings?.call();
+          },
+          onDisconnect: () {
+            setState(() {
+              _selectedConfig = null;
+              _connectionVersion++;
+            });
           },
         ),
         // 3: 设置

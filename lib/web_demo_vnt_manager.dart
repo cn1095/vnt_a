@@ -21,10 +21,10 @@ class WebDemoVntManager {
     // 模拟连接延迟
     await Future.delayed(DemoModeConfig.connectDelay);
     
+    DemoModeConfig.reset();
     _isConnected = true;
     _currentConfig = config;
     DemoModeConfig.setConnected(config.itemKey);
-    DemoModeConfig.reset();
     
     // 启动流量模拟
     _trafficTimer = Timer.periodic(const Duration(seconds: 1), (timer) {

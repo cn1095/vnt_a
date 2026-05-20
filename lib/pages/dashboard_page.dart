@@ -21,6 +21,7 @@ class DashboardPage extends StatefulWidget {
   final VoidCallback? onNavigateToSettings;
   final VoidCallback? onDisconnect;
   final VoidCallback? onConnect;
+  final int connectionVersion;
 
   const DashboardPage({
     super.key,
@@ -28,6 +29,7 @@ class DashboardPage extends StatefulWidget {
     this.onNavigateToSettings,
     this.onDisconnect,
     this.onConnect,
+    this.connectionVersion = 0,
   });
 
   @override
@@ -123,6 +125,14 @@ class _DashboardPageState extends State<DashboardPage> {
     // Web 模式：监听连接状态变化，立即刷新
     if (kIsWeb) {
       _webDemoSub = WebDemoVntManager.statusStream.listen((_) => _updateStats());
+    }
+  }
+
+  @override
+  void didUpdateWidget(DashboardPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (kIsWeb && widget.connectionVersion != oldWidget.connectionVersion) {
+      _updateStats();
     }
   }
 
