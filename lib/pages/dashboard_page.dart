@@ -397,7 +397,6 @@ class _DashboardPageState extends State<DashboardPage> {
     } else {
       // 原生模式
       final allVnts = vntManager.map;
-
       for (var entry in allVnts.entries) {
         final vntBox = entry.value;
         if (!vntBox.isClosed()) {
@@ -482,78 +481,79 @@ class _DashboardPageState extends State<DashboardPage> {
             configName = config.configName;
             isEncrypted = config.groupPassword.isNotEmpty;
 
-          // 获取加密算法
-          if (isEncrypted) {
-            encryptionAlgorithm = config.encryptionAlgorithm.isNotEmpty
-                ? config.encryptionAlgorithm.toUpperCase()
-                : 'AES-GCM';
-          }
-
-          // 获取协议类型
-          protocol = config.protocol.isNotEmpty ? config.protocol.toUpperCase() : 'UDP';
-
-          // 获取用户配置的服务器地址（而不是解析后的地址）
-          relayServer = config.serverAddress;
-
-          // 判断虚拟IP是否为自动分配（配置中的virtualIPv4为空表示自动分配）
-          _isVirtualIpAutoAssigned = config.virtualIPv4.isEmpty;
-        }
-
-        // 获取当前设备信息
-        final currentDevice = vntBox.currentDevice();
-        virtualIp = currentDevice['virtualIp'] ?? '';
-        final virtualGateway = currentDevice['virtualGateway'] ?? '';
-
-        // 获取NAT类型
-        natType = currentDevice['natType'] ?? '';
-
-        deviceName = config?.deviceName ?? '';
-
-        // 计算平均延迟
-        for (var device in devices) {
-          final route = vntBox.route(device.virtualIp);
-          if (route != null && route.rt.toInt() > 0 && route.rt.toInt() < 9999) {
-            totalLatency += route.rt.toInt();
-            latencyCount++;
-          }
-        }
-
-        // 检查网关连通性（用于计算丢包率）
-        if (virtualGateway.isNotEmpty) {
-          final gatewayRoute = vntBox.route(virtualGateway);
-          bool isConnected = false;
-          bool shouldRecord = true;
-
-          // route.rt > 0 且 < 9999 表示连通，0 或 9999 表示不通
-          if (gatewayRoute != null && gatewayRoute.rt.toInt() > 0 && gatewayRoute.rt.toInt() < 9999) {
-            isConnected = true;
-            // 使用网关的延迟作为平均延迟（如果没有其他设备）
-            if (latencyCount == 0) {
-              totalLatency = gatewayRoute.rt.toInt();
-              latencyCount = 1;
+            // 获取加密算法
+            if (isEncrypted) {
+              encryptionAlgorithm = config.encryptionAlgorithm.isNotEmpty
+                  ? config.encryptionAlgorithm.toUpperCase()
+                  : 'AES-GCM';
             }
-          } else if (gatewayRoute != null && (gatewayRoute.rt.toInt() == 0 || gatewayRoute.rt.toInt() == 9999)) {
-            // 前10次出现0或9999时不纳入统计（连接初始化阶段）
-            if (_connectivityCheckCount < 10) {
-              shouldRecord = false;
+
+            // 获取协议类型
+            protocol = config.protocol.isNotEmpty ? config.protocol.toUpperCase() : 'UDP';
+
+            // 获取用户配置的服务器地址（而不是解析后的地址）
+            relayServer = config.serverAddress;
+
+            // 判断虚拟IP是否为自动分配（配置中的virtualIPv4为空表示自动分配）
+            _isVirtualIpAutoAssigned = config.virtualIPv4.isEmpty;
+          }
+
+          // 获取当前设备信息
+          final currentDevice = vntBox.currentDevice();
+          virtualIp = currentDevice['virtualIp'] ?? '';
+          final virtualGateway = currentDevice['virtualGateway'] ?? '';
+
+          // 获取NAT类型
+          natType = currentDevice['natType'] ?? '';
+
+          deviceName = config?.deviceName ?? '';
+
+          // 计算平均延迟
+          for (var device in devices) {
+            final route = vntBox.route(device.virtualIp);
+            if (route != null && route.rt.toInt() > 0 && route.rt.toInt() < 9999) {
+              totalLatency += route.rt.toInt();
+              latencyCount++;
             }
           }
 
-          // 增加检查计数
-          _connectivityCheckCount++;
+          // 检查网关连通性（用于计算丢包率）
+          if (virtualGateway.isNotEmpty) {
+            final gatewayRoute = vntBox.route(virtualGateway);
+            bool isConnected = false;
+            bool shouldRecord = true;
 
-          // 只有shouldRecord为true时才添加到历史记录
-          if (shouldRecord) {
-            // 添加到历史记录（保持最近 50 个数据点）
-            _gatewayConnectivityHistory.add(isConnected);
-            if (_gatewayConnectivityHistory.length > 50) {
-              _gatewayConnectivityHistory.removeAt(0);
+            // route.rt > 0 且 < 9999 表示连通，0 或 9999 表示不通
+            if (gatewayRoute != null && gatewayRoute.rt.toInt() > 0 && gatewayRoute.rt.toInt() < 9999) {
+              isConnected = true;
+              // 使用网关的延迟作为平均延迟（如果没有其他设备）
+              if (latencyCount == 0) {
+                totalLatency = gatewayRoute.rt.toInt();
+                latencyCount = 1;
+              }
+            } else if (gatewayRoute != null && (gatewayRoute.rt.toInt() == 0 || gatewayRoute.rt.toInt() == 9999)) {
+              // 前10次出现0或9999时不纳入统计（连接初始化阶段）
+              if (_connectivityCheckCount < 10) {
+                shouldRecord = false;
+              }
             }
 
-            // 同时添加到Ping历史（保持最近 100 个数据点）
-            _pingHistory.add(isConnected);
-            if (_pingHistory.length > 100) {
-              _pingHistory.removeAt(0);
+            // 增加检查计数
+            _connectivityCheckCount++;
+
+            // 只有shouldRecord为true时才添加到历史记录
+            if (shouldRecord) {
+              // 添加到历史记录（保持最近 50 个数据点）
+              _gatewayConnectivityHistory.add(isConnected);
+              if (_gatewayConnectivityHistory.length > 50) {
+                _gatewayConnectivityHistory.removeAt(0);
+              }
+
+              // 同时添加到Ping历史（保持最近 100 个数据点）
+              _pingHistory.add(isConnected);
+              if (_pingHistory.length > 100) {
+                _pingHistory.removeAt(0);
+              }
             }
           }
         }
@@ -595,7 +595,6 @@ class _DashboardPageState extends State<DashboardPage> {
       _lastUpBytes = _lastUpBytes;
       _lastDownBytes = _lastDownBytes;
     });
-  }
   }
 
   // 解析流量字符串为字节数
@@ -1289,9 +1288,9 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ],
         ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             children: [
               Icon(Icons.signal_cellular_alt, color: primaryColor, size: context.iconSize(20)),
@@ -1389,7 +1388,6 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-    ),
     );
   }
 
@@ -1483,9 +1481,9 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ],
         ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             children: [
               Icon(Icons.pie_chart, color: primaryColor, size: context.iconSize(20)),
@@ -1581,7 +1579,6 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ],
       ),
-    ),
     );
   }
 
