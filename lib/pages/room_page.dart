@@ -76,16 +76,9 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
 
     // Web Demo 模式
     if (kIsWeb && WebDemoVntManager.isConnected) {
-      final mockDevices = DemoModeConfig.getMockDevices();
       final currentDevice = WebDemoVntManager.getCurrentDevice();
-      
-      // 由于 RustPeerClientInfo 是 Rust 生成的类型，Web 模式下我们需要特殊处理
-      // 这里我们直接使用 mock 数据更新 UI 状态
-      // 注意：_devices 列表在 Web 模式下会是空的，但我们会在 UI 中直接使用 mock 数据
-      
       setState(() {
         _currentIp = currentDevice['virtualIp'] as String?;
-        // _devices 保持为空，UI 层会检查 kIsWeb 并使用 mock 数据
       });
       return;
     }
@@ -524,9 +517,33 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
 
   // 构建路由列表
   List<Widget> _buildRouteList(bool isDark) {
-    // 收集所有路由信息
-    List<Map<String, dynamic>> allRoutes = [];
+    // Web Demo 模式：直接渲染 mock 路由
+    if (kIsWeb && WebDemoVntManager.isConnected) {
+      final routes = DemoModeConfig.getMockRoutes();
+      if (routes.isEmpty) return [_buildNoRoutesView(isDark)];
+      return routes.map((r) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? AppTheme.darkCardBackground : const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(children: [
+            Icon(Icons.route, size: 20, color: Theme.of(context).primaryColor),
+            const SizedBox(width: 8),
+            Expanded(child: Text(r['destination'] as String,
+              style: TextStyle(fontWeight: FontWeight.w600,
+                color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary))),
+            Text('网关: ${r['gateway']}',
+              style: TextStyle(fontSize: 12,
+                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
+          ]),
+        ),
+      )).toList();
+    }
 
+    List<Map<String, dynamic>> allRoutes = [];
     final allVnts = vntManager.map;
     for (var entry in allVnts.entries) {
       final vntBox = entry.value;
@@ -535,12 +552,8 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
         for (var routeEntry in routeList) {
           final destination = routeEntry.$1;
           final routes = routeEntry.$2;
-
           for (var route in routes) {
-            allRoutes.add({
-              'destination': destination,
-              'route': route,
-            });
+            allRoutes.add({'destination': destination, 'route': route});
           }
         }
       }

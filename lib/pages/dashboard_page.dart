@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -373,6 +374,12 @@ class _DashboardPageState extends State<DashboardPage> {
           latencyCount++;
         }
       }
+
+      // 模拟网关连通性（98% 成功率）
+      _gatewayConnectivityHistory.add(Random().nextInt(100) < 98);
+      if (_gatewayConnectivityHistory.length > 100) _gatewayConnectivityHistory.removeAt(0);
+      _pingHistory.add(true);
+      if (_pingHistory.length > 100) _pingHistory.removeAt(0);
     } else {
       // 原生模式
       final allVnts = vntManager.map;
@@ -549,7 +556,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     setState(() {
-      _connectionCount = vntManager.size();
+      _connectionCount = kIsWeb ? (WebDemoVntManager.isConnected ? 1 : 0) : vntManager.size();
       _deviceCount = deviceCount;
       _offlineDeviceCount = offlineDeviceCount;
       _totalUpStream = upStream;

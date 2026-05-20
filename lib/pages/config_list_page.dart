@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:vnt_app/utils/platform_utils.dart';
 import 'package:vnt_app/web_demo_vnt_manager.dart';
@@ -44,20 +45,31 @@ class _ConfigListPageState extends State<ConfigListPage> {
   final DataPersistence _dataPersistence = DataPersistence();
   List<NetworkConfig> _configs = [];
   bool _isLoading = true;
+  Timer? _webRefreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadConfigs();
-    // 将刷新方法传递给父组件
     widget.onRefreshCallback?.call(_loadConfigs);
+    // Web 模式下定时刷新连接状态
+    if (kIsWeb) {
+      _webRefreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override
   void didUpdateWidget(ConfigListPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 当页面重新显示时，重新加载配置
     _loadConfigs();
+  }
+
+  @override
+  void dispose() {
+    _webRefreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadConfigs() async {
@@ -342,7 +354,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
   }
 
   Widget _buildConfigCard(NetworkConfig config, int index, bool isDark) {
-    final isConnected = vntManager.hasConnectionItem(config.itemKey);
+    final isConnected = kIsWeb
+        ? (WebDemoVntManager.isConnected && WebDemoVntManager.currentConfig?.itemKey == config.itemKey)
+        : vntManager.hasConnectionItem(config.itemKey);
     final primaryColor = Theme.of(context).primaryColor;
 
     return Container(
