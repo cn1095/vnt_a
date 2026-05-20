@@ -35,7 +35,7 @@ class WebDemoVntManager {
         'download': DemoModeConfig.downloadBytes,
         'devices': DemoModeConfig.getMockDevices(),
         'currentDevice': DemoModeConfig.getCurrentDeviceInfo(
-          config.virtualIPv4.isEmpty ? '10.26.0.1' : config.virtualIPv4
+          config.virtualIPv4.isEmpty ? '10.26.0.100' : config.virtualIPv4
         ),
         'routes': DemoModeConfig.getMockRoutes(),
       });
@@ -48,7 +48,7 @@ class WebDemoVntManager {
       'download': 0,
       'devices': DemoModeConfig.getMockDevices(),
       'currentDevice': DemoModeConfig.getCurrentDeviceInfo(
-        config.virtualIPv4.isEmpty ? '10.26.0.1' : config.virtualIPv4
+        config.virtualIPv4.isEmpty ? '10.26.0.100' : config.virtualIPv4
       ),
       'routes': DemoModeConfig.getMockRoutes(),
     });

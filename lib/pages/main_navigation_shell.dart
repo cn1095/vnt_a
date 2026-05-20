@@ -124,7 +124,29 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Future<void> _connectToConfigDirectly(NetworkConfig config) async {
     // Web 平台：模拟连接
     if (PlatformUtils.isWeb) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final primaryColor = Theme.of(context).primaryColor;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => Dialog(
+          backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: primaryColor),
+                const SizedBox(height: 20),
+                Text('正在连接 ${config.configName} ...'),
+              ],
+            ),
+          ),
+        ),
+      );
       await WebDemoVntManager.connect(config);
+      if (mounted) Navigator.of(context).pop();
       setState(() {
         _selectedConfig = config;
         _connectionVersion++;

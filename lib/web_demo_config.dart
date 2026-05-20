@@ -24,14 +24,14 @@ class DemoModeConfig {
       'configName': 'Demo Network 1',
       'serverAddress': 'demo.vnt.example.com:29872',
       'deviceName': 'My Device',
-      'virtualIPv4': '10.26.0.1',
+      'virtualIPv4': '10.26.0.100',
     },
     {
       'itemKey': 'demo-config-2',
       'configName': 'Demo Network 2',
       'serverAddress': 'demo2.vnt.example.com:29872',
       'deviceName': 'My Device 2',
-      'virtualIPv4': '10.26.1.1',
+      'virtualIPv4': '10.26.1.100',
     },
   ];
   

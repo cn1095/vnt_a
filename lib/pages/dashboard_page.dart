@@ -306,8 +306,8 @@ class _DashboardPageState extends State<DashboardPage> {
     String natType = ''; // NAT类型
 
     // 速率数据（直接使用状态变量，不创建新列表）
-    String currentUpSpeed = '0 B/s';
-    String currentDownSpeed = '0 B/s';
+    String currentUpSpeed = _currentUpSpeed;
+    String currentDownSpeed = _currentDownSpeed;
     double maxUpSpeed = _maxUpSpeed;
     double maxDownSpeed = _maxDownSpeed;
 
@@ -376,7 +376,7 @@ class _DashboardPageState extends State<DashboardPage> {
       
       // 获取当前设备信息
       final currentDevice = DemoModeConfig.getCurrentDeviceInfo(
-        config?.virtualIPv4 ?? '10.26.0.1'
+        config?.virtualIPv4 ?? '10.26.0.100'
       );
       virtualIp = currentDevice['virtualIp'] ?? '';
       natType = currentDevice['natType'] ?? '';

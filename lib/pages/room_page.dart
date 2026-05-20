@@ -77,6 +77,16 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     // Web Demo 模式
     if (kIsWeb && WebDemoVntManager.isConnected) {
       final currentDevice = WebDemoVntManager.getCurrentDevice();
+      final mockDevices = DemoModeConfig.getMockDevices();
+      // 填充延迟历史数据
+      for (var d in mockDevices) {
+        if (d['status'] == 'online') {
+          final ip = d['virtualIp'] as String;
+          if (!_latencyHistory.containsKey(ip)) _latencyHistory[ip] = [];
+          _latencyHistory[ip]!.add(d['latency'] as int);
+          if (_latencyHistory[ip]!.length > _maxHistoryLength) _latencyHistory[ip]!.removeAt(0);
+        }
+      }
       setState(() {
         _currentIp = currentDevice['virtualIp'] as String?;
       });
@@ -295,43 +305,39 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     // Web Demo 模式：使用模拟数据
     if (kIsWeb && WebDemoVntManager.isConnected) {
       final mockDevices = DemoModeConfig.getMockDevices();
-      final onlineDevices = mockDevices.where((d) => d['status'] == 'online').toList();
-      final offlineDevices = mockDevices.where((d) => d['status'] == 'offline').toList();
-      
+      // 转换为 RustPeerClientInfo 复用真实卡片样式
+      final allDevices = mockDevices.map((d) => RustPeerClientInfo(
+        virtualIp: d['virtualIp'] as String,
+        name: d['name'] as String,
+        status: d['status'] == 'online' ? 'Online' : 'Offline',
+        clientSecret: false,
+        clientSecretHash: Uint8List(0),
+        currentClientSecret: false,
+        currentClientSecretHash: Uint8List(0),
+        wireGuard: false,
+      )).toList();
+      final onlineDevices = allDevices.where((d) => _isDeviceOnline(d.status)).toList();
+      final offlineDevices = allDevices.where((d) => !_isDeviceOnline(d.status)).toList();
+
       return RefreshIndicator(
         onRefresh: () async => _updateDevices(),
         color: primaryColor,
         child: ListView(
           padding: EdgeInsets.all(isWideScreen ? context.spacingXLarge : context.spacingMedium),
           children: [
-            // 在线设备分组
             if (onlineDevices.isNotEmpty)
-              _buildWebDeviceGroup(
-                title: '在线设备',
-                count: onlineDevices.length,
-                devices: onlineDevices,
+              _buildDeviceGroup(
+                title: '在线设备', count: onlineDevices.length, devices: onlineDevices,
                 isExpanded: _onlineDevicesExpanded,
-                onToggle: () {
-                  setState(() {
-                    _onlineDevicesExpanded = !_onlineDevicesExpanded;
-                  });
-                },
+                onToggle: () => setState(() => _onlineDevicesExpanded = !_onlineDevicesExpanded),
                 isDark: isDark,
               ),
-
-            // 离线设备分组
             if (offlineDevices.isNotEmpty) ...[
               if (onlineDevices.isNotEmpty) SizedBox(height: context.spacingMedium),
-              _buildWebDeviceGroup(
-                title: '离线设备',
-                count: offlineDevices.length,
-                devices: offlineDevices,
+              _buildDeviceGroup(
+                title: '离线设备', count: offlineDevices.length, devices: offlineDevices,
                 isExpanded: _offlineDevicesExpanded,
-                onToggle: () {
-                  setState(() {
-                    _offlineDevicesExpanded = !_offlineDevicesExpanded;
-                  });
-                },
+                onToggle: () => setState(() => _offlineDevicesExpanded = !_offlineDevicesExpanded),
                 isDark: isDark,
               ),
             ],
@@ -521,26 +527,91 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     if (kIsWeb && WebDemoVntManager.isConnected) {
       final routes = DemoModeConfig.getMockRoutes();
       if (routes.isEmpty) return [_buildNoRoutesView(isDark)];
-      return routes.map((r) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? AppTheme.darkCardBackground : const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(12),
+      final primaryColor = Theme.of(context).primaryColor;
+      return routes.map((r) {
+        final label = r['gateway'] == '10.26.0.1' ? '服务器' : 'P2P';
+        final labelColor = _connectionLabelColor(label);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.darkCardBackground : const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                  blurRadius: 8, offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.route, size: 20, color: primaryColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(r['destination'] as String,
+                        style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.w600,
+                          color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: labelColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(label, style: TextStyle(fontSize: context.fontXSmall,
+                        fontWeight: FontWeight.w600, color: labelColor)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: primaryColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Metric', style: TextStyle(fontSize: context.fontXSmall,
+                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
+                        const SizedBox(height: 4),
+                        Text('${r['metric']}', style: TextStyle(fontSize: context.fontMedium,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary)),
+                      ]),
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: primaryColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('RT', style: TextStyle(fontSize: context.fontXSmall,
+                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
+                        const SizedBox(height: 4),
+                        Text('--', style: TextStyle(fontSize: context.fontMedium,
+                          fontWeight: FontWeight.w600, color: Colors.grey)),
+                      ]),
+                    )),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Icon(Icons.router, size: 14,
+                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                  const SizedBox(width: 6),
+                  Text('网关: ${r['gateway']}', style: TextStyle(fontSize: context.fontSmall,
+                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
+                ]),
+              ],
+            ),
           ),
-          child: Row(children: [
-            Icon(Icons.route, size: 20, color: Theme.of(context).primaryColor),
-            const SizedBox(width: 8),
-            Expanded(child: Text(r['destination'] as String,
-              style: TextStyle(fontWeight: FontWeight.w600,
-                color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary))),
-            Text('网关: ${r['gateway']}',
-              style: TextStyle(fontSize: 12,
-                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)),
-          ]),
-        ),
-      )).toList();
+        );
+      }).toList();
     }
 
     List<Map<String, dynamic>> allRoutes = [];
@@ -701,25 +772,39 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
     String natType = '';
     String publicIp = '';
 
-    final allVnts = vntManager.map;
-    for (var entry in allVnts.entries) {
-      final vntBox = entry.value;
-      if (!vntBox.isClosed()) {
-        final route = vntBox.route(device.virtualIp);
-        p2pRelay = _deviceConnectionLabel(device, route);
-        if (route != null) {
-          rt = route.rt.toInt();
-        }
-
-        // 获取NAT信息
-        final natInfo = vntBox.peerNatInfo(device.virtualIp);
-        if (natInfo != null) {
-          natType = natInfo.natType;
-          if (natInfo.publicIps.isNotEmpty) {
-            publicIp = natInfo.publicIps.first;
+    if (kIsWeb && WebDemoVntManager.isConnected) {
+      // Web demo：从 mock 数据获取
+      final mockDevices = DemoModeConfig.getMockDevices();
+      final mockDevice = mockDevices.firstWhere(
+        (d) => d['virtualIp'] == device.virtualIp, orElse: () => {});
+      if (mockDevice.isNotEmpty) {
+        rt = mockDevice['latency'] as int? ?? 0;
+        natType = mockDevice['natType'] as String? ?? '';
+        final pips = mockDevice['publicIps'] as List?;
+        if (pips != null && pips.isNotEmpty) publicIp = pips.first as String;
+        p2pRelay = rt > 0 ? 'P2P' : '';
+      }
+    } else {
+      final allVnts = vntManager.map;
+      for (var entry in allVnts.entries) {
+        final vntBox = entry.value;
+        if (!vntBox.isClosed()) {
+          final route = vntBox.route(device.virtualIp);
+          p2pRelay = _deviceConnectionLabel(device, route);
+          if (route != null) {
+            rt = route.rt.toInt();
           }
+
+          // 获取NAT信息
+          final natInfo = vntBox.peerNatInfo(device.virtualIp);
+          if (natInfo != null) {
+            natType = natInfo.natType;
+            if (natInfo.publicIps.isNotEmpty) {
+              publicIp = natInfo.publicIps.first;
+            }
+          }
+          break;
         }
-        break;
       }
     }
 
@@ -743,7 +828,16 @@ class _RoomPageState extends State<RoomPage> with SingleTickerProviderStateMixin
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _showDeviceDetails(device),
+          onTap: () {
+            if (kIsWeb && WebDemoVntManager.isConnected) {
+              final mockDevices = DemoModeConfig.getMockDevices();
+              final mockDevice = mockDevices.firstWhere(
+                (d) => d['virtualIp'] == device.virtualIp, orElse: () => {});
+              if (mockDevice.isNotEmpty) _showWebDeviceDetails(mockDevice);
+            } else {
+              _showDeviceDetails(device);
+            }
+          },
           borderRadius: BorderRadius.circular(context.cardRadius),
           child: Padding(
             padding: ResponsiveUtils.padding(context, all: context.cardPadding),
